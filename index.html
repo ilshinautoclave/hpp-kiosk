@@ -3528,12 +3528,11 @@
       // Populate 4 Left Cards with Non-Cropped REAL PHOTOS (No zoom modal as requested)
       const prodsGrid = document.getElementById('appProdsGrid');
       prodsGrid.innerHTML = '';
-      // 카드 수에 맞춰 배치 (4개: 2×2, 3개: 왼쪽 큰 카드 1 + 오른쪽 2)
+      // 2×2 고정 배치 (3개면 마지막 칸은 빈칸)
       const n = data.prods.length;
       data.prods.forEach((p, i) => {
         const card = document.createElement('div');
         card.className = 'kiosk-prod-card-v3';
-        if (n === 3 && i === 0) card.style.gridRow = 'span 2';
         card.innerHTML = `
           <div class="prod-photo-thumb">
             <img src="${p.img}" alt="${p.name[currentLang]}" decoding="async">
