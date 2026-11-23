@@ -1,0 +1,4151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <title>HiPPo HPP — 초고압 살균 키오스크 | ㈜일신오토클레이브</title>
+  
+  <!-- Pretendard Variable (로컬 번들 · 오프라인 동작, SIL OFL 1.1) -->
+  <style>
+    @font-face {
+      font-family: "Pretendard";
+      src: url("assets/fonts/PretendardVariable.woff2") format("woff2-variations"),
+           url("assets/fonts/PretendardVariable.woff2") format("woff2");
+      font-weight: 45 920;
+      font-style: normal;
+      font-display: block;
+    }
+  </style>
+
+  <!-- QRCode.js (Offline Local with CDN fallback) -->
+  <script src="assets/js/qrcode.min.js"></script>
+  <script>
+    if (typeof QRCode === 'undefined') {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>');
+    }
+  </script>
+
+  <style>
+    /* ===== RESET & ROOT VARIABLES ===== */
+    *, *::before, *::after {
+      margin: 0; padding: 0; box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      word-break: keep-all;
+    }
+
+    :root {
+      --kiosk-h: 1080px; /* 16:9 → 1080, 16:10(갤럭시탭) → 1200 : fitKioskToScreen()에서 자동 설정 */
+      --green-darkest: #030E07;
+      --green-deep:    #07190F;
+      --green-panel:   #0B2215;
+      --green-card:    #11311F;
+      --green-card2:   #174029;
+      --green-primary: #2D6A4F;
+      --green-mid:     #40916C;
+      --green-bright:  #52B788;
+      --green-neon:    #74E39A;
+      --green-light:   #B7E4C7;
+      --gold:          #E5B842;
+      --white:         #FFFFFF;
+      --white-dim:     rgba(255, 255, 255, 0.88);
+      --white-muted:   rgba(255, 255, 255, 0.65);
+      --border:        rgba(116, 227, 154, 0.18);
+      --border-bright: rgba(116, 227, 154, 0.45);
+      --font-main:     "Pretendard", "Malgun Gothic", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: var(--green-darkest);
+      color: var(--white);
+      font-family: var(--font-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    #kiosk-scaler {
+      width: 1920px;
+      height: var(--kiosk-h);
+      position: relative;
+      flex-shrink: 0;
+      transform-origin: center center;
+      overflow: hidden;
+    }
+
+    /* ===== KIOSK APP SHELL (1920 x 1080) ===== */
+    #kiosk-app {
+      display: flex;
+      width: 1920px;
+      height: var(--kiosk-h);
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ===== SIDEBAR (Width: 260px) ===== */
+    #sidebar {
+      width: 260px;
+      height: var(--kiosk-h);
+      background: linear-gradient(180deg, var(--green-deep) 0%, #030c06 100%);
+      border-right: 1.5px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+    }
+
+    .sidebar-logo-area {
+      height: 100px;
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1.5px solid var(--border);
+    }
+    .sidebar-logo-area img {
+      height: 38px;
+      width: auto;
+      filter: brightness(0) invert(1);
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 20px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .nav-btn {
+      width: 100%;
+      height: 76px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 18px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1.5px solid transparent;
+      border-radius: 18px;
+      color: var(--white-muted);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+      position: relative;
+    }
+    .nav-btn:hover {
+      background: rgba(116, 227, 154, 0.08);
+      border-color: rgba(116, 227, 154, 0.25);
+      color: var(--white);
+      transform: translateX(4px);
+    }
+    .nav-btn:active {
+      transform: scale(0.97);
+    }
+    .nav-btn.active {
+      background: linear-gradient(90deg, rgba(116, 227, 154, 0.22) 0%, rgba(45, 106, 79, 0.15) 100%);
+      border-color: var(--green-neon);
+      color: var(--green-neon);
+      box-shadow: 0 8px 24px rgba(116, 227, 154, 0.2);
+    }
+
+    .nav-btn .nav-icon-3d {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      flex-shrink: 0;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
+      transition: transform 0.25s ease;
+    }
+    .nav-btn:hover .nav-icon-3d, .nav-btn.active .nav-icon-3d {
+      transform: scale(1.18);
+      filter: drop-shadow(0 0 10px rgba(116, 227, 154, 0.8));
+    }
+
+    .nav-btn .nav-text {
+      display: flex;
+      flex-direction: column;
+    }
+    .nav-btn .nav-text .nav-title {
+      font-size: 23px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .nav-btn .nav-text .nav-sub {
+      font-size: 16px;
+      color: var(--green-light);
+      font-weight: 500;
+      letter-spacing: 1.2px;
+      margin-top: 3px;
+      opacity: 0.85;
+    }
+
+    .sidebar-footer {
+      padding: 20px 24px;
+      border-top: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 16px;
+      color: var(--green-light);
+      letter-spacing: 0.5px;
+    }
+    .sidebar-footer .status-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--green-neon);
+      box-shadow: 0 0 10px var(--green-neon);
+      animation: pulseDot 2s infinite ease-in-out;
+    }
+
+    /* ===== MAIN STAGE (Width: 1660px, Height: 1080px) ===== */
+    #main-content {
+      width: 1660px;
+      height: var(--kiosk-h);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Top Bar Header */
+    .top-bar {
+      height: 76px;
+      padding: 0 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1.5px solid var(--border);
+      background: rgba(7, 25, 15, 0.7);
+      backdrop-filter: blur(12px);
+      flex-shrink: 0;
+      position: relative;
+      z-index: 5;
+    }
+    .top-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .top-bar-brand-tag {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      color: var(--gold);
+      background: rgba(229, 184, 66, 0.12);
+      border: 1px solid rgba(229, 184, 66, 0.35);
+      padding: 4px 12px;
+      border-radius: 8px;
+    }
+    .top-bar-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--white);
+    }
+
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .top-clock {
+      font-size: 21px;
+      font-weight: 600;
+      color: var(--white-muted);
+      letter-spacing: 1px;
+      font-variant-numeric: tabular-nums;
+    }
+    .lang-switcher {
+      display: flex;
+      background: rgba(0, 0, 0, 0.45);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+    }
+    .lang-btn {
+      padding: 8px 18px;
+      font-size: 20px;
+      font-weight: 800;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--white-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .lang-btn:active {
+      transform: scale(0.95);
+    }
+    .lang-btn.active {
+      background: var(--green-neon);
+      color: #04120A;
+      box-shadow: 0 2px 10px rgba(116, 227, 154, 0.4);
+    }
+
+    /* Panels Container */
+    .panels-container {
+      flex: 1;
+      height: 1004px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel {
+      position: absolute;
+      top: 0; right: 0; bottom: 0; left: 0;
+      padding: 34px 44px 38px;
+      display: none;
+      flex-direction: column;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .panel.active {
+      display: flex;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ===== 1. HOME PANEL (FULL BACKGROUND VIDEO + DARKEN LAYER) ===== */
+    #panel-home {
+      padding: 0; /* Full bleed */
+      overflow: hidden;
+    }
+    .home-bg-video-wrap {
+      position: absolute;
+      top: 0; right: 0; bottom: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 0;
+    }
+    .home-bg-video-wrap video {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      min-width: 100%;
+      min-height: 100%;
+      width: 100%;
+      height: 100%;
+      transform: translate(-50%, -50%) scale(1.06);
+      object-fit: cover;
+      object-position: center center;
+      filter: brightness(0.88) contrast(1.08);
+    }
+    /* Dynamic directional gradient overlay: legible text on left, clear vibrant food video on right */
+    .home-bg-overlay {
+      position: absolute;
+      top: 0; right: 0; bottom: 0; left: 0;
+      background: 
+        radial-gradient(circle at calc(100% - 84px) calc(100% - 146px), rgba(3, 14, 7, 0.98) 0%, rgba(3, 14, 7, 0.92) 50px, transparent 85px),
+        linear-gradient(90deg, 
+          rgba(3, 14, 7, 0.88) 0%, 
+          rgba(3, 14, 7, 0.72) 42%, 
+          rgba(3, 14, 7, 0.35) 72%, 
+          rgba(3, 14, 7, 0.15) 100%
+        );
+      pointer-events: none;
+    }
+
+    .home-content-stage {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      padding: 46px 60px 42px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .home-main-text-block {
+      max-width: 1300px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+    .home-tag-pill {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(116, 227, 154, 0.16);
+      border: 1.8px solid var(--green-neon);
+      padding: 10px 24px;
+      border-radius: 26px;
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--green-neon);
+      letter-spacing: 0.8px;
+      box-shadow: 0 0 20px rgba(116, 227, 154, 0.3);
+    }
+    .home-hero-title {
+      font-size: 82px;
+      font-weight: 900;
+      line-height: 1.15;
+      letter-spacing: -2px;
+      text-shadow: 0 6px 30px rgba(0, 0, 0, 0.95);
+    }
+    .home-hero-title .hl-green {
+      color: var(--green-neon);
+      text-shadow: 0 0 35px rgba(116, 227, 154, 0.6);
+    }
+    .home-hero-title .hl-gold {
+      color: var(--gold);
+      text-shadow: 0 0 35px rgba(229, 184, 66, 0.6);
+    }
+
+    .home-hero-desc {
+      font-size: 29px;
+      line-height: 1.58;
+      color: #E6F0EA;
+      font-weight: 500;
+      max-width: 1220px;
+      text-shadow: 0 3px 16px rgba(0, 0, 0, 0.95);
+    }
+
+    /* Home 4 Key Metric Cards (Enlarged) */
+    .home-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 280px);
+      gap: 22px;
+      margin-top: 10px;
+    }
+    .kiosk-metric-card {
+      background: rgba(7, 25, 15, 0.88);
+      backdrop-filter: blur(14px);
+      border: 1.8px solid var(--border-bright);
+      border-radius: 22px;
+      padding: 24px 22px;
+      text-align: center;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.6);
+      transition: all 0.3s ease;
+    }
+    .kiosk-metric-card:hover {
+      border-color: var(--green-neon);
+      transform: translateY(-4px);
+      box-shadow: 0 18px 40px rgba(116, 227, 154, 0.35);
+    }
+    .kiosk-metric-card .val {
+      font-size: 46px;
+      font-weight: 900;
+      color: var(--white);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .kiosk-metric-card .val small {
+      font-size: 27px;
+      color: var(--green-neon);
+      font-weight: 700;
+      margin-left: 6px;
+    }
+    .kiosk-metric-card .lbl {
+      font-size: 21px;
+      color: var(--green-light);
+      font-weight: 700;
+    }
+
+    /* Home Bottom Bar (CTA buttons on left, FULL video on right) */
+    .home-bottom-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+    .home-cta-group {
+      display: flex;
+      gap: 18px;
+    }
+    .btn-kiosk-primary {
+      padding: 22px 44px;
+      font-size: 27px;
+      font-weight: 800;
+      border-radius: 20px;
+      border: none;
+      background: linear-gradient(135deg, var(--green-bright) 0%, var(--green-primary) 100%);
+      color: #030e07;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 10px 30px rgba(82, 183, 136, 0.5);
+      transition: all 0.25s ease;
+    }
+    .btn-kiosk-primary:hover {
+      background: linear-gradient(135deg, var(--green-neon) 0%, var(--green-bright) 100%);
+      box-shadow: 0 14px 40px rgba(116, 227, 154, 0.7);
+      transform: translateY(-3px);
+    }
+    .btn-kiosk-primary:active { transform: scale(0.96); }
+
+    .btn-kiosk-secondary {
+      padding: 22px 38px;
+      font-size: 27px;
+      font-weight: 800;
+      border-radius: 20px;
+      border: 1.8px solid var(--border-bright);
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      color: var(--white);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: all 0.25s ease;
+    }
+    .btn-kiosk-secondary:hover {
+      background: rgba(116, 227, 154, 0.16);
+      border-color: var(--green-neon);
+      transform: translateY(-3px);
+    }
+    .btn-kiosk-secondary:active { transform: scale(0.96); }
+
+    /* [소개영상보기] 버튼 우측 하단 (별 커버 위치) */
+    .home-full-video-btn {
+      position: absolute;
+      right: 36px;
+      bottom: 95px;
+      z-index: 10;
+      min-width: 270px;
+      min-height: 104px;
+      box-sizing: border-box;
+      background: rgba(7, 25, 15, 0.96);
+      backdrop-filter: blur(20px);
+      border: 2px solid var(--green-neon);
+      border-radius: 26px;
+      padding: 18px 30px 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      cursor: pointer;
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.8), 0 0 28px rgba(116, 227, 154, 0.45);
+      transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .home-full-video-btn:hover {
+      background: var(--green-card2);
+      transform: translateY(-4px) scale(1.03);
+      box-shadow: 0 18px 48px rgba(116, 227, 154, 0.6);
+    }
+    .home-full-video-btn:active {
+      transform: scale(0.96);
+    }
+    .home-full-video-btn .play-icon-box {
+      width: 52px; height: 52px;
+      border-radius: 16px;
+      background: var(--green-neon);
+      display: flex; align-items: center; justify-content: center;
+      color: #04120A;
+      box-shadow: 0 0 16px var(--green-neon);
+      flex-shrink: 0;
+    }
+    .home-full-video-btn .btn-text-col {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .home-full-video-btn .btn-text-col .main-lbl {
+      font-size: 27px;
+      font-weight: 900;
+      color: var(--white);
+      letter-spacing: -0.3px;
+      white-space: nowrap;
+    }
+
+    /* ===== 2. TECHNOLOGY PANEL (Segmented 3-Views) ===== */
+    .tech-stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      height: 100%;
+    }
+
+    .segment-bar {
+      display: flex;
+      background: rgba(0, 0, 0, 0.45);
+      border: 1.5px solid var(--border);
+      border-radius: 18px;
+      padding: 6px;
+      gap: 8px;
+      align-self: flex-start;
+    }
+    .segment-btn {
+      padding: 14px 28px;
+      font-size: 22px;
+      font-weight: 800;
+      border: none;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--white-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.25s ease;
+    }
+    .segment-btn:active { transform: scale(0.96); }
+    .segment-btn.active {
+      background: var(--green-neon);
+      color: #04120A;
+      box-shadow: 0 6px 18px rgba(116, 227, 154, 0.4);
+    }
+
+    .tech-subview {
+      flex: 1;
+      display: none;
+      height: calc(100% - 70px);
+      animation: fadeInUp 0.3s ease;
+    }
+    .tech-subview.active {
+      display: flex;
+    }
+
+    /* Requirement 1: 6000 bar Simulator with Vector Gauge Icon above Bar text */
+    .sim-layout {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      gap: 36px;
+      align-items: stretch;
+    }
+    .sim-gauge-card {
+      flex: 1.1;
+      height: 100%;
+      max-height: none;
+      background: linear-gradient(135deg, var(--green-panel) 0%, var(--green-deep) 100%);
+      border: 2px solid var(--border-bright);
+      border-radius: 28px;
+      padding: 34px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+    }
+    .sim-gauge-top { text-align: center; }
+    .sim-gauge-top h3 { font-size: 29px; color: var(--white); font-weight: 800; margin-bottom: 6px; }
+    .sim-gauge-top p { font-size: 21px; color: var(--green-light); }
+
+    /* Meter display with white vector gauge icon */
+    .sim-meter-display {
+      text-align: center;
+      padding: 10px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .sim-vector-icon-wrap {
+      width: 78px;
+      height: 78px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.6));
+    }
+    .sim-number-big {
+      font-size: 78px;
+      font-weight: 900;
+      color: var(--green-neon);
+      text-shadow: 0 0 35px rgba(116, 227, 154, 0.6);
+      line-height: 1;
+      letter-spacing: -2px;
+    }
+    .sim-unit-sub {
+      font-size: 27px;
+      color: var(--white-dim);
+      font-weight: 700;
+      margin-top: 10px;
+    }
+
+    .sim-presets-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+    .preset-btn {
+      padding: 16px 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1.5px solid var(--border);
+      color: var(--white);
+      font-size: 21px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+    .preset-btn:hover, .preset-btn.active {
+      background: rgba(116, 227, 154, 0.18);
+      border-color: var(--green-neon);
+      color: var(--green-neon);
+      transform: translateY(-2px);
+    }
+    .preset-btn span.bar-txt { font-size: 23px; font-weight: 900; }
+    .preset-btn span.bar-desc { font-size: 16px; color: var(--green-light); font-weight: 600; }
+
+    .sim-slider-row input[type=range] {
+      width: 100%; height: 18px; border-radius: 9px;
+      background: #030e07; border: 1.5px solid var(--border);
+      outline: none; -webkit-appearance: none;
+    }
+    .sim-slider-row input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 38px; height: 38px; border-radius: 50%;
+      background: var(--green-neon);
+      box-shadow: 0 0 16px var(--green-neon);
+      cursor: pointer;
+    }
+
+    .sim-hud-cards {
+      flex: 1; height: 100%; max-height: none;
+      display: flex; flex-direction: column; gap: 18px; justify-content: stretch;
+    }
+    .sim-hud-cards .hud-status-card { flex: 1; padding: 26px 34px; }
+    .sim-hud-cards .hud-card-icon { width: 84px; height: 84px; border-radius: 22px; }
+    .sim-hud-cards .hud-card-icon img { width: 58px !important; height: 58px !important; }
+    .sim-hud-cards .hud-card-title { font-size: 21px; margin-bottom: 4px; }
+    .sim-hud-cards .hud-card-val { font-size: 36px; line-height: 1.2; }
+    .sim-hud-cards .hud-card-desc { font-size: 22px; margin-top: 6px; }
+    .hud-status-card {
+      background: linear-gradient(135deg, rgba(17, 49, 31, 0.8) 0%, rgba(7, 25, 15, 0.9) 100%);
+      border: 2px solid var(--border);
+      border-radius: 24px; padding: 26px 30px;
+      display: flex; align-items: center; gap: 24px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+      transition: all 0.3s ease;
+    }
+    .hud-status-card:hover { border-color: var(--green-neon); transform: translateX(6px); }
+    .hud-card-icon {
+      width: 64px; height: 64px; border-radius: 18px;
+      background: rgba(116, 227, 154, 0.15); border: 1px solid var(--border-bright);
+      display: flex; align-items: center; justify-content: center; font-size: 36px; flex-shrink: 0;
+    }
+    .hud-card-title { font-size: 20px; font-weight: 700; color: var(--green-light); }
+    .hud-card-val { font-size: 36px; font-weight: 900; color: var(--green-neon); letter-spacing: -0.5px; }
+    .hud-card-desc { font-size: 21px; color: var(--white-dim); font-weight: 400; }
+
+    /* Requirement 2: HPP 5-Step Process (Row 1: Step 1~3, Row 2: Step 4~5 + Real Photos) with Bigger Cards & Bigger Fonts */
+    .proc-v3-layout {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      justify-content: center;
+    }
+    .proc-v3-row-top {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .proc-v3-row-bottom {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 4px;
+    }
+    .proc-v3-row-bottom .kiosk-step-card-lg {
+      width: calc((100% - 48px) / 3);
+      flex-shrink: 0;
+    }
+    .kiosk-step-card-lg .body-holder {
+      padding: 16px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      justify-content: center;
+    }
+    .kiosk-step-card-lg .title-lg {
+      font-size: 27px;
+      font-weight: 800;
+      color: var(--white);
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .kiosk-step-card-lg .desc-lg {
+      font-size: 20px;
+      color: var(--green-light);
+      line-height: 1.4;
+      text-align: center;
+    }
+
+    .kiosk-step-card-lg {
+      background: var(--green-panel);
+      border: 2px solid var(--border);
+      border-radius: 22px;
+      overflow: hidden;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+      transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .kiosk-step-card-lg:hover {
+      border-color: var(--green-neon);
+      transform: translateY(-6px);
+      box-shadow: 0 18px 40px rgba(116, 227, 154, 0.35);
+    }
+    .kiosk-step-card-lg:active { transform: scale(0.97); }
+
+    .kiosk-step-card-lg .img-holder {
+      width: 100%;
+      height: 205px;
+      background: #000;
+      position: relative;
+      overflow: hidden;
+    }
+    .kiosk-step-card-lg .img-holder img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform 0.35s ease;
+    }
+    .kiosk-step-card-lg:hover .img-holder img {
+      transform: scale(1.08);
+    }
+    .kiosk-step-card-lg .step-pill-badge {
+      position: absolute;
+      top: 12px; left: 14px;
+      background: rgba(3, 14, 7, 0.9);
+      border: 1.5px solid var(--green-neon);
+      color: var(--green-neon);
+      font-size: 17px; font-weight: 900;
+      padding: 5px 14px; border-radius: 10px;
+      letter-spacing: 0.8px;
+    }
+    .kiosk-step-card-lg .zoom-hint-tag {
+      position: absolute;
+      bottom: 10px; right: 12px;
+      background: rgba(0, 0, 0, 0.75);
+      color: var(--white-muted);
+      font-size: 16px; font-weight: 700;
+      padding: 3px 8px; border-radius: 6px;
+    }
+
+    .kiosk-step-card-lg .body-holder {
+      padding: 16px 20px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .kiosk-step-card-lg .body-holder .title-lg {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--white);
+      letter-spacing: -0.3px;
+    }
+    .kiosk-step-card-lg .body-holder .desc-lg {
+      font-size: 20px;
+      color: var(--green-light);
+      line-height: 1.4;
+      font-weight: 500;
+    }
+
+    /* Real Photos Card on Bottom Row */
+    .real-photo-deck-card {
+      background: linear-gradient(135deg, rgba(17, 49, 31, 0.9) 0%, rgba(7, 25, 15, 0.95) 100%);
+      border: 2px solid var(--border-bright);
+      border-radius: 22px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+    }
+    .real-photo-deck-card .deck-title {
+      font-size: 22px; font-weight: 800; color: var(--gold);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .real-photo-thumbs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      flex: 1;
+    }
+    .real-photo-mini {
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1.5px solid var(--border);
+      position: relative;
+      cursor: pointer;
+      background: #000;
+    }
+    .real-photo-mini img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+    .real-photo-mini:hover img { transform: scale(1.08); }
+    .real-photo-mini .badge-lbl {
+      position: absolute; bottom: 6px; left: 8px;
+      background: rgba(0, 0, 0, 0.8);
+      font-size: 16px; font-weight: 800; color: var(--white);
+      padding: 2px 8px; border-radius: 6px;
+    }
+
+    /* Subview C: Comparison Infographic Cards */
+    .comp-cards-layout {
+      width: 100%; height: 100%;
+      display: flex; gap: 36px; align-items: center; justify-content: center;
+    }
+    .comp-hero-card {
+      flex: 1; height: 100%; max-height: none;
+      border-radius: 28px; padding: 38px 44px;
+      display: flex; flex-direction: column; gap: 26px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+    }
+    .comp-hero-card.good {
+      background: linear-gradient(135deg, rgba(17, 49, 31, 0.85) 0%, rgba(7, 25, 15, 0.95) 100%);
+      border: 2px solid var(--green-neon);
+      box-shadow: 0 0 35px rgba(116, 227, 154, 0.2);
+    }
+    .comp-hero-card.bad {
+      background: linear-gradient(135deg, rgba(35, 15, 15, 0.75) 0%, rgba(18, 7, 7, 0.85) 100%);
+      border: 2px solid rgba(239, 83, 80, 0.45);
+    }
+    .comp-card-header {
+      display: flex; align-items: center; gap: 16px;
+      padding-bottom: 20px; border-bottom: 1.5px solid rgba(255, 255, 255, 0.1);
+    }
+    .comp-header-icon { font-size: 40px; }
+    .comp-header-title { font-size: 31px; font-weight: 900; }
+    .comp-hero-card.good .comp-header-title { color: var(--green-neon); }
+    .comp-hero-card.bad .comp-header-title { color: #FF8A80; }
+
+    .comp-points-list { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+    .comp-point-item {
+      flex: 1; display: flex; align-items: center; gap: 22px;
+      padding: 0 26px; border-radius: 18px;
+      background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 26px; font-weight: 700; color: var(--white);
+    }
+    .comp-point-item .pt-txt { display: flex; flex-direction: column; gap: 4px; }
+    .comp-point-item .pt-txt small { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; color: var(--white-muted); }
+    .comp-hero-card.good .comp-point-item .pt-txt small { color: var(--green-light); }
+    .comp-hero-card.bad .comp-point-item .pt-txt small { color: #FFAB91; }
+    .comp-hero-card.bad .comp-point-item { color: var(--white-dim); }
+    .comp-point-item .bullet {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 24px; flex-shrink: 0;
+    }
+    .comp-hero-card.good .bullet {
+      background: rgba(116, 227, 154, 0.2); color: var(--green-neon); border: 1px solid var(--green-neon);
+    }
+    .comp-hero-card.bad .bullet {
+      background: rgba(239, 83, 80, 0.2); color: #FF8A80; border: 1px solid rgba(239, 83, 80, 0.5);
+    }
+
+    /* ===== 3. APPLICATIONS PANEL (Requirement 3: Real Photos in 4 Left Product Boxes) ===== */
+    .app-stage {
+      flex: 1; display: flex; flex-direction: column; gap: 20px; height: 100%;
+    }
+
+    .app-tab-pills {
+      display: flex;
+      background: rgba(0, 0, 0, 0.45);
+      border: 1.5px solid var(--border);
+      border-radius: 20px; padding: 6px; gap: 10px; align-self: flex-start;
+    }
+    .app-tab-pill {
+      padding: 14px 26px; font-size: 22px; font-weight: 800;
+      border: none; border-radius: 14px; background: transparent;
+      color: var(--white-muted); cursor: pointer;
+      display: flex; align-items: center; gap: 10px;
+      transition: all 0.25s ease;
+    }
+    .app-tab-pill:active { transform: scale(0.96); }
+    .app-tab-pill.active {
+      background: var(--green-neon); color: #04120A;
+      box-shadow: 0 6px 20px rgba(116, 227, 154, 0.4);
+    }
+    .app-tab-pill .tab-icon-3d { width: 26px; height: 26px; object-fit: contain; }
+
+    /* Layout: 4 Product Boxes on the LEFT, Summary Hero on the RIGHT */
+    .app-showcase-split-v3 {
+      flex: 1; display: flex; gap: 32px; height: calc(100% - 75px); align-items: center;
+    }
+    
+    /* 4 Touchable Product Showcase Cards Grid (LEFT) */
+    .app-prods-grid-v3 {
+      flex: 1.15;
+      height: 100%;
+      max-height: none;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 20px;
+    }
+    .kiosk-prod-card-v3 {
+      background: linear-gradient(135deg, rgba(17, 49, 31, 0.8) 0%, rgba(7, 25, 15, 0.9) 100%);
+      border: 1.5px solid var(--border);
+      border-radius: 22px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      cursor: default;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+      overflow: hidden;
+    }
+    .kiosk-prod-card-v3:hover {
+      border-color: rgba(116, 227, 154, 0.4);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Requirement 3: Real Image Thumbnail inside card */
+    .prod-photo-thumb {
+      width: 100%;
+      height: 190px;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #000;
+      margin-bottom: 14px;
+      position: relative;
+    }
+    .prod-photo-thumb img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform 0.35s ease;
+    }
+    .kiosk-prod-card-v3:hover .prod-photo-thumb img {
+      transform: scale(1.08);
+    }
+    .kiosk-prod-card-v3 .prod-info-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .kiosk-prod-card-v3 .prod-title-lg {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--white);
+    }
+    .kiosk-prod-card-v3 .prod-desc-sm {
+      font-size: 18px;
+      color: var(--green-light);
+      line-height: 1.4;
+      font-weight: 500;
+    }
+
+    /* Right Hero Feature Card */
+    .app-hero-card-v3 {
+      flex: 0.85;
+      height: 100%;
+      max-height: none;
+      background: linear-gradient(135deg, var(--green-panel) 0%, var(--green-deep) 100%);
+      border: 2px solid var(--border-bright);
+      border-radius: 28px;
+      padding: 38px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+    }
+    .app-hero-card-v3 h3 { font-size: 36px; font-weight: 900; color: var(--white); margin-bottom: 12px; }
+    .app-hero-card-v3 p.lead { font-size: 22px; line-height: 1.5; color: var(--white-dim); }
+
+    .app-check-list { flex: 1; display: flex; flex-direction: column; gap: 14px; margin: 28px 0; }
+    .app-check-list .app-check-item { flex: 1; max-height: 120px; font-size: 24px; }
+    .app-check-item {
+      display: flex; align-items: center; gap: 16px; font-size: 23px; font-weight: 700; color: var(--white);
+      padding: 20px 22px; border-radius: 16px;
+      background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .app-check-item .chk {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(116, 227, 154, 0.2); border: 1px solid var(--green-neon);
+      color: var(--green-neon); display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 20px; flex-shrink: 0;
+    }
+    .app-spec-pills-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .app-spec-pill {
+      background: rgba(116, 227, 154, 0.1); border: 1px solid var(--border-bright);
+      color: var(--green-neon); padding: 14px 16px; border-radius: 14px;
+      display: flex; flex-direction: column; gap: 4px; min-width: 0;
+    }
+    .app-spec-pill small { font-size: 17px; font-weight: 700; color: var(--green-light); }
+    .app-spec-pill b { font-size: 22px; font-weight: 800; color: var(--green-neon); letter-spacing: -0.3px; }
+
+    /* ===== 4. EQUIPMENT PANEL ===== */
+    .equip-stage {
+      flex: 1; display: flex; flex-direction: column; gap: 16px; height: 100%;
+    }
+    .equip-intro-banner {
+      display: flex; align-items: center; gap: 16px;
+      background: linear-gradient(90deg, rgba(17, 49, 31, 0.75) 0%, rgba(7, 25, 15, 0.9) 100%);
+      border: 1px solid var(--border-bright); border-radius: 16px; padding: 12px 24px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+    }
+    .equip-intro-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(116, 227, 154, 0.15); border: 1px solid var(--green-neon);
+      color: var(--green-neon); font-size: 18px; font-weight: 800; padding: 6px 14px;
+      border-radius: 20px; white-space: nowrap; letter-spacing: -0.2px;
+    }
+    .equip-pulse-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--green-neon);
+      box-shadow: 0 0 8px var(--green-neon); animation: pulseDot 2s infinite ease-in-out;
+    }
+    .equip-intro-text {
+      font-size: 20px; font-weight: 600; color: #E2ECE5; letter-spacing: -0.3px;
+    }
+    .equip-models-row {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; flex: 1; min-height: 490px;
+    }
+    .kiosk-equip-card {
+      background: linear-gradient(135deg, var(--green-panel) 0%, var(--green-deep) 100%);
+      border: 2px solid var(--border); border-radius: 24px; padding: 20px 18px;
+      display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+      cursor: pointer; position: relative; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+      transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .kiosk-equip-card:hover { border-color: var(--green-bright); transform: translateY(-5px); }
+    .kiosk-equip-card.active {
+      border-color: var(--green-neon); box-shadow: 0 16px 42px rgba(116, 227, 154, 0.35); background: var(--green-card2);
+    }
+    .kiosk-equip-card.active::after {
+      content: ''; position: absolute; top: 16px; right: 16px;
+      width: 14px; height: 14px; border-radius: 50%; background: var(--green-neon);
+      box-shadow: 0 0 10px var(--green-neon), 0 0 20px rgba(116, 227, 154, 0.8), 0 0 0 3px rgba(116, 227, 154, 0.25);
+      animation: pulseDot 2s infinite ease-in-out;
+    }
+    .kiosk-equip-card .equip-img-holder {
+      width: 100%; flex: 1; min-height: 210px; display: flex; align-items: center; justify-content: center;
+      background: radial-gradient(circle, rgba(116, 227, 154, 0.08) 0%, transparent 70%);
+    }
+    .kiosk-equip-card .equip-img-holder img {
+      max-width: 100%; max-height: 250px; object-fit: contain;
+      filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.6)); transition: transform 0.3s ease;
+    }
+    .kiosk-equip-card:hover .equip-img-holder img { transform: scale(1.05); }
+    .kiosk-equip-card .equip-title-block { text-align: center; width: 100%; }
+    .kiosk-equip-card .equip-title-block .title { font-size: 27px; font-weight: 800; color: var(--white); }
+    .kiosk-equip-card .equip-title-block .vol { font-size: 28px; font-weight: 900; color: var(--green-neon); margin-top: 2px; }
+    .kiosk-equip-card .equip-title-block .equip-card-desc {
+      font-size: 20px; color: #C8DFD1; line-height: 1.45; margin: 8px 0;
+      min-height: 44px; display: flex; align-items: center; justify-content: center;
+      word-break: keep-all; letter-spacing: -0.2px;
+    }
+    .kiosk-equip-card .equip-title-block .tag {
+      display: inline-block; font-size: 16px; font-weight: 700; color: var(--gold);
+      background: rgba(229, 184, 66, 0.12); border: 1px solid rgba(229, 184, 66, 0.3); padding: 4px 12px; border-radius: 10px;
+    }
+
+    .equip-hud-console {
+      flex: none; min-height: 250px;
+      background: linear-gradient(135deg, rgba(7, 25, 15, 0.95) 0%, rgba(3, 14, 7, 0.98) 100%);
+      border: 2px solid var(--border-bright); border-radius: 24px; padding: 22px 32px;
+      display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+    }
+    .equip-hud-header { display: flex; align-items: center; justify-content: space-between; }
+    .equip-hud-title-col { display: flex; flex-direction: column; gap: 4px; }
+    .equip-hud-title { font-size: 22px; font-weight: 800; color: var(--green-neon); display: flex; align-items: center; gap: 10px; }
+    .equip-hud-desc { font-size: 19px; color: var(--green-light); font-weight: 600; letter-spacing: -0.2px; }
+    .btn-view-spec-modal {
+      background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border); color: var(--white-dim);
+      font-size: 18px; font-weight: 700; padding: 8px 18px; border-radius: 12px; cursor: pointer; transition: all 0.2s ease;
+    }
+    .btn-view-spec-modal:hover { background: rgba(116, 227, 154, 0.15); border-color: var(--green-neon); color: var(--white); }
+
+    .equip-hud-metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+    .hud-metric-tile {
+      background: rgba(17, 49, 31, 0.45); border: 1px solid var(--border); border-radius: 16px;
+      padding: 16px 20px; display: flex; flex-direction: column; gap: 4px;
+    }
+    .hud-metric-tile .k-lbl { font-size: 17px; color: var(--green-light); font-weight: 600; }
+    .hud-metric-tile .k-val { font-size: 29px; font-weight: 800; color: var(--white); letter-spacing: -0.3px; }
+
+    /* ===== 5. VIDEO PANEL ===== */
+    .video-cinema-stage { flex: 1; height: 100%; display: flex; flex-direction: column; gap: 20px; }
+    .video-mode-pills { display: flex; gap: 14px; width: 1511px; align-self: center; }
+    .video-mode-pill {
+      padding: 14px 26px; font-size: 22px; font-weight: 800; border-radius: 14px; border: 1.5px solid var(--border);
+      background: rgba(0, 0, 0, 0.45); color: var(--white-muted); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease;
+    }
+    .video-mode-pill:active { transform: scale(0.96); }
+    .video-mode-pill.active {
+      background: var(--green-neon); color: #04120A; border-color: var(--green-neon); box-shadow: 0 6px 20px rgba(116, 227, 154, 0.4);
+    }
+    .video-player-cinema-box {
+      flex: none; width: 1511px; height: 850px; align-self: center; border-radius: 28px; border: 2px solid var(--border-bright);
+      overflow: hidden; background: #000; position: relative;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 50px rgba(116, 227, 154, 0.15);
+    }
+    .video-player-cinema-box video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+
+    /* ===== 6. CONTACT & QR PANEL (Requirement 4: Updated 3 Locations + Embedded Map) ===== */
+    .contact-stage {
+      flex: 1; height: 100%; display: flex; gap: 36px; align-items: center;
+    }
+    .contact-info-card-v3 {
+      flex: 1.15;
+      height: 100%;
+      max-height: 800px;
+      background: linear-gradient(135deg, var(--green-panel) 0%, var(--green-deep) 100%);
+      border: 2px solid var(--border-bright);
+      border-radius: 28px;
+      padding: 34px 38px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+    }
+    .contact-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .contact-top-row img {
+      height: 38px;
+      filter: brightness(0) invert(1);
+    }
+    .contact-info-card-v3 h3 {
+      font-size: 31px;
+      font-weight: 800;
+      color: var(--white);
+    }
+
+    .contact-locations-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .location-box-row {
+      background: rgba(17, 49, 31, 0.55);
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.25s ease;
+    }
+    .location-box-row:hover {
+      border-color: var(--green-neon);
+      background: var(--green-card2);
+      transform: translateX(4px);
+    }
+    .location-tag-pill {
+      background: rgba(116, 227, 154, 0.18);
+      border: 1px solid var(--green-neon);
+      color: var(--green-neon);
+      font-size: 17px;
+      font-weight: 800;
+      padding: 5px 12px;
+      border-radius: 8px;
+      white-space: nowrap;
+      min-width: 140px;
+      text-align: center;
+    }
+    .location-addr-text {
+      font-size: 21px;
+      font-weight: 700;
+      color: var(--white);
+      letter-spacing: -0.2px;
+    }
+
+    /* Requirement 4: Embedded High-Tech Vector Map in Contact Card */
+    .contact-map-frame {
+      width: 100%;
+      height: 240px;
+      border-radius: 18px;
+      border: 1.5px solid var(--border-bright);
+      background: #030D06;
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.7);
+    }
+    .contact-map-frame svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .contact-qr-card-v3 {
+      flex: 0.85;
+      height: 100%;
+      max-height: 800px;
+      background: linear-gradient(135deg, var(--green-card) 0%, var(--green-deep) 100%);
+      border: 2px solid var(--green-neon);
+      border-radius: 28px;
+      padding: 38px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 22px;
+      box-shadow: 0 20px 50px rgba(116, 227, 154, 0.25);
+    }
+    .contact-qr-card-v3 h3 { font-size: 31px; font-weight: 900; color: var(--white); }
+    .qr-holder-box {
+      background: #FFFFFF; padding: 18px; border-radius: 22px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+    }
+    .qr-scan-prompt { font-size: 21px; color: var(--white-dim); font-weight: 600; line-height: 1.5; }
+    .btn-direct-inquiry {
+      width: 100%; padding: 18px; font-size: 23px; font-weight: 800; border-radius: 18px;
+      border: none; background: var(--green-neon); color: #04120A; cursor: pointer;
+      box-shadow: 0 10px 24px rgba(116, 227, 154, 0.4); transition: all 0.25s ease;
+    }
+    .btn-direct-inquiry:hover { transform: translateY(-3px); box-shadow: 0 14px 32px rgba(116, 227, 154, 0.6); }
+
+    /* Modals */
+    .kiosk-modal-backdrop {
+      position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: rgba(3, 14, 7, 0.88); backdrop-filter: blur(16px);
+      z-index: 100; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease;
+    }
+    .kiosk-modal-backdrop.show { display: flex; opacity: 1; }
+    .kiosk-modal-window {
+      background: var(--green-panel); border: 2px solid var(--green-neon); border-radius: 28px;
+      width: 1200px; max-height: 900px; overflow: hidden; display: flex; flex-direction: column;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7); animation: modalPop 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .kiosk-modal-header {
+      padding: 24px 32px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid var(--border);
+    }
+    .kiosk-modal-header h3 { font-size: 29px; font-weight: 800; color: var(--green-neon); }
+    .kiosk-modal-close {
+      width: 48px; height: 48px; border-radius: 14px; border: 1.5px solid var(--border);
+      background: rgba(255, 255, 255, 0.05); color: var(--white); font-size: 27px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;
+    }
+    .kiosk-modal-close:hover { background: rgba(239, 83, 80, 0.2); border-color: #EF5350; color: #EF5350; }
+    .kiosk-modal-body { padding: 32px; display: flex; gap: 32px; align-items: center; overflow-y: auto; }
+    .kiosk-modal-body img { max-width: 60%; border-radius: 18px; border: 1.5px solid var(--border); }
+    .kiosk-modal-desc-col { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+    .kiosk-modal-desc-col p { font-size: 23px; line-height: 1.6; color: var(--white-dim); }
+
+    /* Keyframe Animations */
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.35); }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes modalPop {
+      from { transform: scale(0.92); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    @keyframes radarWave {
+      0% { r: 6px; opacity: 0.9; }
+      100% { r: 32px; opacity: 0; }
+    }
+  
+    /* ===== V4 ENHANCEMENTS: SIMULATOR INTERACTIVE TARGET ICON & GUIDE ===== */
+    .sim-interactive-target-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .sim-vector-target-icon {
+      width: 86px;
+      height: 86px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1.5px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      box-shadow: 0 0 25px rgba(116, 227, 154, 0.25);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .sim-vector-target-icon svg {
+      filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.7));
+    }
+    .sim-target-action-badge {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--green-neon);
+      background: rgba(10, 31, 20, 0.85);
+      border: 1px solid var(--border-bright);
+      padding: 5px 16px;
+      border-radius: 30px;
+      letter-spacing: 0.3px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+      transition: all 0.25s ease;
+    }
+    .sim-slider-row {
+      margin-top: 14px;
+      margin-bottom: 12px;
+      padding: 0 4px;
+    }
+    .sim-slider-guide-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 0;
+      margin-bottom: 6px;
+      padding: 7px 18px;
+      background: rgba(116, 227, 154, 0.08);
+      border: 1px dashed rgba(116, 227, 154, 0.4);
+      border-radius: 30px;
+      color: var(--green-light);
+      font-size: 19px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+    .sim-slider-guide-box .guide-icon {
+      font-size: 21px;
+      animation: pulseUpDown 1.5s infinite alternate;
+    }
+    @keyframes pulseUpDown {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-3px); }
+    }
+
+    /* ===== V4 CONTACT STYLING ===== */
+    .contact-info-card-v4 {
+      flex: 1.35;
+      background: linear-gradient(135deg, rgba(17, 49, 31, 0.85) 0%, rgba(7, 25, 15, 0.95) 100%);
+      border: 1.5px solid var(--border);
+      border-radius: 26px;
+      padding: 26px 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+      height: 100%;
+      overflow: hidden;
+    }
+    .contact-info-card-v4 h3 {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--white);
+      margin-bottom: 2px;
+    }
+    .contact-locations-grid-v4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .contact-locations-grid-v4 .location-box-row {
+      background: rgba(4, 18, 10, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .contact-locations-grid-v4 .location-tag-pill {
+      align-self: flex-start;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: rgba(116, 227, 154, 0.15);
+      border: 1px solid var(--green-neon);
+      color: var(--green-neon);
+      font-size: 16px;
+      font-weight: 800;
+    }
+    .contact-locations-grid-v4 .location-addr-text {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--white-dim);
+      line-height: 1.35;
+    }
+
+    .contact-meta-details-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      background: rgba(4, 18, 10, 0.45);
+      border: 1px solid rgba(116, 227, 154, 0.15);
+      border-radius: 16px;
+      padding: 12px 16px;
+    }
+    .meta-detail-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .meta-detail-item .meta-icon {
+      width: 36px; height: 36px;
+    }
+    .meta-detail-item .meta-icon img, .meta-detail-item .contact-icon-3d {
+      width: 24px !important; height: 24px !important; max-width: 24px !important; max-height: 24px !important; object-fit: contain !important;
+    }
+    .meta-detail-item_old {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .meta-detail-item .meta-col .lbl {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--green-light);
+      margin-bottom: 2px;
+    }
+    .meta-detail-item .meta-col .val {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--white);
+      line-height: 1.3;
+    }
+
+    .contact-google-map-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .contact-google-map-wrap .map-bar-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--green-light);
+    }
+    .contact-google-map-wrap .map-bar-title small {
+      font-size: 16px;
+      color: var(--white-muted);
+      font-weight: 400;
+    }
+    .contact-google-map-wrap .map-iframe-holder {
+      flex: 1;
+      min-height: 185px;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1.5px solid var(--border-bright);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .contact-qr-card-v4 {
+      flex: 0.85;
+      background: linear-gradient(135deg, rgba(17, 49, 31, 0.85) 0%, rgba(7, 25, 15, 0.95) 100%);
+      border: 1.5px solid var(--border);
+      border-radius: 26px;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+      height: 100%;
+    }
+    .contact-qr-card-v4 h3 {
+      font-size: 27px;
+      font-weight: 800;
+      color: var(--white);
+      margin-bottom: 20px;
+    }
+    .qr-holder-box-v4 {
+      background: #FFFFFF;
+      padding: 16px;
+      border-radius: 20px;
+      box-shadow: 0 0 35px rgba(116, 227, 154, 0.35);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .qr-link-badge-v4 {
+      font-size: 17px;
+      font-family: monospace;
+      color: var(--green-neon);
+      background: rgba(4, 18, 10, 0.8);
+      border: 1px solid var(--border);
+      padding: 6px 16px;
+      border-radius: 30px;
+      margin-top: 10px;
+      margin-bottom: 22px;
+    }
+    .qr-service-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+    }
+    .qr-service-pill {
+      background: rgba(116, 227, 154, 0.08);
+      border: 1px solid rgba(116, 227, 154, 0.2);
+      border-radius: 30px;
+      padding: 8px 16px;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--white-dim);
+    }
+
+    /* ===== V4 PRODUCT CARD OPTIMIZATION (Non-cropped & perfectly framed) ===== */
+    .kiosk-prod-card-v3 {
+      background: linear-gradient(135deg, rgba(17, 49, 31, 0.85) 0%, rgba(7, 25, 15, 0.95) 100%);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      cursor: default;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+      overflow: hidden;
+      height: 100%;
+    }
+    .kiosk-prod-card-v3:hover {
+      border-color: rgba(116, 227, 154, 0.4);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+    }
+    .kiosk-prod-card-v3 .prod-photo-thumb {
+      width: 100%;
+      height: 225px;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #000;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .kiosk-prod-card-v3 .prod-photo-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+    }
+    .kiosk-prod-card-v3 .prod-photo-thumb .photo-zoom-tag {
+      display: none !important;
+    }
+    .kiosk-prod-card-v3 .prod-info-block {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      padding: 10px 4px 2px;
+      flex: 1;
+      justify-content: center;
+    }
+    .kiosk-prod-card-v3 .prod-title-lg {
+      font-size: 25px;
+      font-weight: 800;
+      color: var(--white);
+      line-height: 1.25;
+    }
+    .kiosk-prod-card-v3 .prod-desc-sm {
+      font-size: 19px;
+      color: var(--green-light);
+      line-height: 1.35;
+    }
+
+  
+    /* ===== V6 ENHANCEMENT: BALANCED CONTACT & QR (ABOUT US + INTERACTIVE ADDRESS MAP + LARGER FONTS) ===== */
+    .contact-stage-v6 {
+      flex: 1;
+      height: 100%;
+      max-height: 820px;
+      display: grid;
+      grid-template-columns: 1.54fr 0.88fr;
+      gap: 20px;
+      align-items: stretch;
+    }
+    .contact-left-col-v6 {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .contact-card-v6 {
+      background: linear-gradient(135deg, rgba(17, 49, 31, 0.9) 0%, rgba(7, 25, 15, 0.98) 100%);
+      border: 1.5px solid var(--border);
+      border-radius: 24px;
+      padding: 22px 24px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+      position: relative;
+    }
+
+    /* About us Card */
+    .card-about-v6 {
+      flex-shrink: 0;
+    }
+    .contact-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .contact-header-icon {
+      font-size: 29px;
+    }
+    .contact-title-lg {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--white);
+      letter-spacing: -0.3px;
+    }
+    .contact-badge-tag {
+      background: rgba(116, 227, 154, 0.15);
+      border: 1px solid var(--green-neon);
+      color: var(--green-neon);
+      font-size: 17px;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 20px;
+      letter-spacing: 1px;
+    }
+    .about-meta-grid-v6 {
+      display: grid;
+      grid-template-columns: 1fr 1.18fr;
+      gap: 12px 18px;
+      margin-top: 14px;
+    }
+    .about-meta-item-v6 {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(4, 18, 10, 0.55);
+      border: 1.2px solid rgba(116, 227, 154, 0.25);
+      border-radius: 14px;
+      padding: 10px 16px;
+      min-height: 74px;
+    }
+    .about-icon-box-v6 {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .about-icon-box-v6 img, .about-icon-box-v6 .contact-icon-3d {
+      width: 28px !important;
+      height: 28px !important;
+      object-fit: contain !important;
+    }
+    .about-text-v6 {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+      min-width: 0;
+      overflow: visible;
+    }
+    .about-lbl-v6 {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--green-neon);
+      letter-spacing: -0.2px;
+    }
+    .about-val-v6 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--white);
+      line-height: 1.3;
+      white-space: normal;
+      word-break: keep-all;
+      overflow: visible;
+    }
+    .about-val-v6 small {
+      font-size: 18px;
+      color: var(--white-dim);
+      font-weight: 400;
+    }
+
+    /* Address & Map Card */
+    .card-address-map-v6 {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 20px 24px 20px;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+    .addr-active-name {
+      font-size: 20px;
+      color: var(--green-light);
+      font-weight: 600;
+      margin-left: 10px;
+    }
+    .address-buttons-grid-v6 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 8px 0 16px;
+      flex-shrink: 0;
+    }
+    .address-btn-v6 {
+      background: rgba(4, 18, 10, 0.75);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 13px 18px;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      color: var(--white-dim);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    }
+    .address-btn-v6:hover {
+      border-color: var(--green-neon);
+      background: rgba(23, 64, 41, 0.65);
+      color: var(--white);
+      transform: translateY(-2px);
+    }
+    .address-btn-v6.active {
+      border-color: var(--green-neon);
+      background: linear-gradient(135deg, rgba(23, 64, 41, 0.95) 0%, rgba(14, 42, 27, 0.98) 100%);
+      color: var(--green-neon);
+      box-shadow: 0 0 18px rgba(116, 227, 154, 0.4);
+    }
+    .addr-btn-icon {
+      font-size: 23px;
+    }
+    .addr-btn-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.2px;
+    }
+
+    .google-map-container-v6 {
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1.5px solid var(--border-bright);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+      box-sizing: border-box;
+      margin-bottom: 2px;
+      background: #030D06;
+    }
+
+    /* Map Toolbar & Offline Viewer Styles */
+    .map-view-toolbar {
+      height: 38px;
+      background: rgba(3, 14, 7, 0.95);
+      border-bottom: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+    .map-toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .map-live-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--green-neon);
+      box-shadow: 0 0 10px var(--green-neon);
+      display: inline-block;
+    }
+    .map-loc-title {
+      font-size: 19px;
+      font-weight: 800;
+      color: var(--white);
+      letter-spacing: -0.2px;
+    }
+    .map-coord-badge {
+      font-size: 16px;
+      color: var(--green-light);
+      background: rgba(116, 227, 154, 0.12);
+      border: 1px solid rgba(116, 227, 154, 0.3);
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-family: monospace;
+    }
+    .map-toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .map-mode-btn {
+      padding: 4px 12px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--white-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .map-mode-btn:hover {
+      background: rgba(116, 227, 154, 0.15);
+      color: var(--white);
+    }
+    .map-mode-btn.active {
+      background: var(--green-neon);
+      color: #04120A;
+      border-color: var(--green-neon);
+      font-weight: 800;
+      box-shadow: 0 0 12px rgba(116, 227, 154, 0.4);
+    }
+
+    .map-content-wrapper {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      width: 100%;
+      height: calc(100% - 38px);
+      overflow: hidden;
+      display: flex;
+    }
+    .offline-map-view {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+    .offline-map-canvas-col {
+      width: 58%;
+      height: 100%;
+      position: relative;
+      background: #030E07;
+      border-right: 1.5px solid var(--border);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .offline-map-data-col {
+      width: 42%;
+      height: 100%;
+      background: linear-gradient(180deg, rgba(7, 25, 15, 0.95) 0%, rgba(3, 14, 7, 0.98) 100%);
+      padding: 24px 22px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 18px;
+      overflow: hidden;
+    }
+    .map-data-card-item {
+      background: rgba(4, 18, 10, 0.85);
+      border: 1.5px solid rgba(116, 227, 154, 0.25);
+      border-radius: 14px;
+      padding: 18px 22px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-sizing: border-box;
+      transition: border-color 0.25s, transform 0.25s;
+    }
+    .map-data-card-item.highlight-jibun {
+      border-color: rgba(116, 227, 154, 0.45);
+      background: rgba(116, 227, 154, 0.08);
+      box-shadow: 0 4px 24px rgba(116, 227, 154, 0.12);
+    }
+    .map-data-lbl {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--green-neon);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      letter-spacing: 0.5px;
+    }
+    .map-data-val {
+      font-size: 23px;
+      color: var(--white);
+      line-height: 1.45;
+      font-weight: 700;
+      word-break: keep-all;
+    }
+    .map-data-val b {
+      color: #FFFFFF;
+      font-weight: 800;
+      text-shadow: 0 0 10px rgba(116, 227, 154, 0.2);
+    }
+    .map-data-val.val-jibun {
+      color: var(--green-bright);
+      font-weight: 800;
+      text-shadow: 0 0 12px rgba(116, 227, 154, 0.3);
+    }
+
+    /* Right QR Card */
+    .card-qr-v6 {
+      height: 100%;
+      padding: 30px 26px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      text-align: center;
+    }
+    .qr-header-v6 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .qr-header-icon {
+      font-size: 36px;
+    }
+    .qr-title-v6 {
+      font-size: 36px;
+      font-weight: 900;
+      color: var(--white);
+      letter-spacing: -0.5px;
+    }
+    .qr-holder-box-v6 {
+      background: #FFFFFF;
+      padding: 22px;
+      border-radius: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(116, 227, 154, 0.3);
+      border: 4px solid var(--green-neon);
+      margin: 10px 0;
+    }
+    .qr-holder-box-v6 canvas,
+    .qr-holder-box-v6 img {
+      width: 340px !important;
+      height: 340px !important;
+      display: block;
+    }
+    .qr-scan-prompt-v6 {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--white);
+      line-height: 1.5;
+      margin: 4px 0;
+    }
+    .qr-scan-prompt-v6 strong {
+      color: var(--green-neon);
+      font-weight: 800;
+    }
+    .qr-service-list-v6 {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .qr-service-pill-v6 {
+      width: 100%;
+      background: rgba(4, 18, 10, 0.65);
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 18px;
+      color: var(--white);
+      font-size: 23px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    }
+
+
+    /* ===== v7: 상담 문의 – 회사 정보 · 오시는 길 단일 카드 ===== */
+    .contact-stage-v6 { max-height: none; }
+    .contact-unified-v7 {
+      flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 18px;
+      padding: 26px 28px;
+    }
+    .contact-unified-v7 .about-meta-grid-v6 { margin-top: 0; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .contact-unified-v7 .about-meta-item-v6 { min-height: 88px; padding: 12px 18px; }
+    .contact-unified-v7 .about-icon-box-v6 { width: 54px; height: 54px; }
+    .contact-unified-v7 .about-icon-box-v6 img { width: 34px !important; height: 34px !important; }
+    .about-val-v6 .sep { color: var(--white-muted); margin: 0 8px; font-weight: 400; }
+    .contact-unified-v7 .address-buttons-grid-v6 { margin: 4px 0 0; }
+    .contact-unified-v7 .address-btn-v6 { padding: 16px 18px; }
+    .contact-unified-v7 .google-map-container-v6 { position: relative; display: flex; }
+    .contact-unified-v7 .map-content-wrapper { height: 100%; }
+    .map-mode-float { position: absolute; top: 12px; left: 12px; display: flex; gap: 6px; z-index: 6; }
+    .map-mode-float .map-mode-btn { padding: 8px 14px; font-size: 17px; background: rgba(3, 14, 7, 0.85); }
+    .map-mode-float .map-mode-btn.active { background: var(--green-neon); }
+    .contact-unified-v7 .offline-map-canvas-col { width: 55%; }
+    .contact-unified-v7 .offline-map-data-col { width: 45%; padding: 24px 26px; gap: 16px; justify-content: center; }
+    .loc-name { font-size: 29px; font-weight: 900; color: var(--green-neon); letter-spacing: -0.5px; }
+    .loc-addr-block {
+      display: flex; flex-direction: column; gap: 6px; padding: 18px 20px; border-radius: 14px;
+      background: rgba(4, 18, 10, 0.85); border: 1.5px solid rgba(116, 227, 154, 0.25);
+    }
+    .loc-lbl { font-size: 17px; font-weight: 800; color: var(--green-light); }
+    .loc-road { font-size: 26px; font-weight: 800; color: #FFFFFF; line-height: 1.35; }
+    .loc-jibun { font-size: 19px; font-weight: 600; color: var(--white-dim); }
+    /* v7: 큰 화면에서 남는 높이를 사진이 채우도록 */
+    .kiosk-prod-card-v3 .prod-photo-thumb { flex: 1 1 auto; height: auto; min-height: 190px; flex-shrink: 1; }
+    .kiosk-prod-card-v3 .prod-info-block { flex: none; padding: 4px 4px 2px; }
+    .kiosk-equip-card .equip-img-holder img { max-height: 320px; }
+    .contact-unified-v7 .offline-map-canvas-col {
+      background-color: #030E07;
+      background-image: linear-gradient(rgba(116,227,154,0.05) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(116,227,154,0.05) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+    .app-spec-pill b { font-size: 19px; }
+    .app-spec-pills-row { grid-template-columns: 1.25fr 1fr 1fr; }
+    .nw { white-space: nowrap; }
+    .loc-road { font-size: 25px; }
+    html[lang="en"] .nav-btn .nav-text .nav-sub { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- KIOSK SCALER (Adaptive Screen & Tablet Fitting) -->
+  <div id="kiosk-scaler">
+    <div id="kiosk-app">
+
+    <!-- ===== 1. SIDEBAR (Width: 260px) ===== -->
+    <aside id="sidebar">
+      <div class="sidebar-logo-area">
+        <img src="assets/logos/logo2.png" alt="HiPPo HPP" decoding="async">
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-btn active" data-target="home" onclick="switchNav('home')">
+          <img src="assets/icons_3d/nav_home.png" alt="" class="nav-icon-3d" decoding="async">
+          <div class="nav-text">
+            <span class="nav-title" data-i18n="nav_home">홈</span>
+            <span class="nav-sub">HOME</span>
+          </div>
+        </button>
+
+        <button class="nav-btn" data-target="tech" onclick="switchNav('tech')">
+          <img src="assets/icons_3d/nav_tech.png" alt="" class="nav-icon-3d" decoding="async">
+          <div class="nav-text">
+            <span class="nav-title" data-i18n="nav_tech">기술 소개</span>
+            <span class="nav-sub">TECHNOLOGY</span>
+          </div>
+        </button>
+
+        <button class="nav-btn" data-target="app" onclick="switchNav('app')">
+          <img src="assets/icons_3d/nav_app.png" alt="" class="nav-icon-3d" decoding="async">
+          <div class="nav-text">
+            <span class="nav-title" data-i18n="nav_app">적용 분야</span>
+            <span class="nav-sub">APPLICATIONS</span>
+          </div>
+        </button>
+
+        <button class="nav-btn" data-target="equip" onclick="switchNav('equip')">
+          <img src="assets/icons_3d/nav_equip.png" alt="" class="nav-icon-3d" decoding="async">
+          <div class="nav-text">
+            <span class="nav-title" data-i18n="nav_equip">장비 소개</span>
+            <span class="nav-sub">EQUIPMENT</span>
+          </div>
+        </button>
+
+        <button class="nav-btn" data-target="video" onclick="switchNav('video')">
+          <img src="assets/icons_3d/nav_video.png" alt="" class="nav-icon-3d" decoding="async">
+          <div class="nav-text">
+            <span class="nav-title" data-i18n="nav_video">영상관</span>
+            <span class="nav-sub">VIDEO</span>
+          </div>
+        </button>
+
+        <button class="nav-btn" data-target="contact" onclick="switchNav('contact')">
+          <img src="assets/icons_3d/nav_contact.png" alt="" class="nav-icon-3d" decoding="async">
+          <div class="nav-text">
+            <span class="nav-title" data-i18n="nav_contact">상담 문의</span>
+            <span class="nav-sub">CONTACT</span>
+          </div>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="status-dot"></div>
+        <span>HI-TECH TOUCH KIOSK</span>
+      </div>
+    </aside>
+
+    <!-- ===== 2. MAIN CONTENT AREA ===== -->
+    <main id="main-content">
+      
+      <!-- Top Bar Header -->
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <span class="top-bar-brand-tag">ILSHINAUTOCLAVE</span>
+          <span class="top-bar-title" id="pageTitleDisplay">HiPPo HPP 솔루션</span>
+        </div>
+
+        <div class="top-bar-right">
+          <div class="top-clock" id="liveClock">12:00:00</div>
+          <div class="lang-switcher">
+            <button class="lang-btn active" id="btnLangKo" onclick="setLanguage('ko')">KR</button>
+            <button class="lang-btn" id="btnLangEn" onclick="setLanguage('en')">EN</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- PANELS CONTAINER -->
+      <div class="panels-container">
+
+        <!-- ================= 1. HOME PANEL (Requirement 5: Background Video + Dark Overlay + [FULL 영상 보기] Button) ================= -->
+        <section class="panel active" id="panel-home">
+          
+          <!-- Background Video Wrap with Dark Overlay -->
+          <div class="home-bg-video-wrap">
+            <video id="homeBgVideo" autoplay muted loop playsinline preload="auto">
+              <source src="assets/videos/kiosk_bg.mp4" type="video/mp4">
+            </video>
+            <div class="home-bg-overlay"></div>
+          </div>
+
+          <!-- Main Home Interactive Content -->
+          <div class="home-content-stage">
+            <div class="home-main-text-block">
+              <div class="home-tag-pill" data-i18n="home_tag">
+                <span>●</span> 일신오토클레이브 · 초고압 살균 솔루션
+              </div>
+
+              <h1 class="home-hero-title" data-i18n="home_title">
+                맛과 영양은 <span class="hl-green">그대로,</span><br>
+                신선함은 6배 <span class="hl-gold">오래.</span>
+              </h1>
+
+              <p class="home-hero-desc" data-i18n="home_desc">
+                열 대신 <strong>6,000 bar의 초고압</strong>으로 식품 본연의 맛·영양을 보존하고 유해균을 효과적으로 제어하는 친환경 비열 살균 솔루션입니다.
+              </p>
+
+              <!-- 4 Big Metric Cards -->
+              <div class="home-metrics-grid">
+                <div class="kiosk-metric-card">
+                  <div class="val">6,000<small>bar</small></div>
+                  <div class="lbl" data-i18n="stat_p_lbl">최대 처리 압력</div>
+                </div>
+                <div class="kiosk-metric-card">
+                  <div class="val" data-i18n="stat_life_val">최대 6<small>배</small></div>
+                  <div class="lbl" data-i18n="stat_life_lbl">유통기한 연장</div>
+                </div>
+                <div class="kiosk-metric-card">
+                  <div class="val" data-i18n="stat_temp_val">0<small>회 가열</small></div>
+                  <div class="lbl" data-i18n="stat_temp_lbl">비열처리 신선살균</div>
+                </div>
+                <div class="kiosk-metric-card">
+                  <div class="val" data-i18n="stat_cap_val">350<small>L</small></div>
+                  <div class="lbl" data-i18n="stat_cap_lbl">산업용 대용량 모델</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom Row: CTA on Left, [FULL 영상 보기] on Right (Requirement 5) -->
+            <div class="home-bottom-row">
+              <div class="home-cta-group">
+                <button class="btn-kiosk-primary" onclick="switchNav('tech')" data-i18n="home_cta_tech">
+                  🔬 초고압 원리 체험하기
+                </button>
+                <button class="btn-kiosk-secondary" onclick="switchNav('app')" data-i18n="home_cta_app">
+                  🍱 식품 적용분야 둘러보기
+                </button>
+              </div>
+
+              <!-- [소개영상보기] 아이콘 우측 하단 (별 커버 위치) -->
+              <div class="home-full-video-btn" onclick="switchNav('video')">
+                <div class="play-icon-box">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                </div>
+                <div class="btn-text-col">
+                  <span class="main-lbl" data-i18n="btn_full_video_main">소개영상보기</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= 2. TECHNOLOGY PANEL (Requirement 1: White Vector Gauge Icon / Requirement 2: 2-Row Process Steps) ================= -->
+        <section class="panel" id="panel-tech">
+          <div class="tech-stage">
+            
+            <!-- Segment Nav Bar -->
+            <div class="segment-bar">
+              <button class="segment-btn active" onclick="switchTechSegment('sim', this)" data-i18n="tech_seg_sim">
+                ⚡ 6,000 bar 수압 시뮬레이터
+              </button>
+              <button class="segment-btn" onclick="switchTechSegment('proc', this)" data-i18n="tech_seg_proc">
+                🔄 HPP 5단계 공정
+              </button>
+              <button class="segment-btn" onclick="switchTechSegment('comp', this)" data-i18n="tech_seg_comp">
+                🌿 HPP vs 기존 가열살균 비교
+              </button>
+            </div>
+
+            <!-- Subview A: 6000 bar Simulator (Requirement 1: White Vector SVG Icon above Bar text) -->
+            <div class="tech-subview active" id="subview-sim">
+              <div class="sim-layout">
+                <div class="sim-gauge-card">
+                  <div class="sim-gauge-top">
+                    <h3 data-i18n="sim_card_title">가압 수압 제어 컨트롤러</h3>
+                    <p data-i18n="sim_card_sub">슬라이더를 드래그하거나 압력 프리셋을 터치해 보세요.</p>
+                  </div>
+
+                  <!-- Requirement 1: White Vector Style Icon above the big Bar text -->
+                  <div class="sim-meter-display">
+                    <!-- Requirement 5: Interactive Vector Icon for Microbe, Shellfish Shucking, Meat, Bottled Beverage -->
+                    <div class="sim-interactive-target-wrap">
+                      <div class="sim-vector-target-icon" id="simTargetIcon">
+                        <!-- Default: 6000 bar Microorganism Inactivation Vector Icon -->
+                        <svg width="76" height="76" viewBox="0 0 100 100" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="28" y="32" width="44" height="36" rx="18" stroke-dasharray="6 3"/>
+                          <path d="M 50 14 L 50 24 M 50 14 L 46 18 M 50 14 L 54 18"/>
+                          <path d="M 50 86 L 50 76 M 50 86 L 46 82 M 50 86 L 54 82"/>
+                          <path d="M 14 50 L 24 50 M 14 50 L 18 46 M 14 50 L 18 54"/>
+                          <path d="M 86 50 L 76 50 M 86 50 L 82 46 M 86 50 L 82 54"/>
+                          <circle cx="42" cy="46" r="4" fill="#FFFFFF" stroke="none"/>
+                          <circle cx="58" cy="54" r="3.5" fill="#FFFFFF" stroke="none"/>
+                          <circle cx="52" cy="42" r="2.5" fill="#FFFFFF" stroke="none"/>
+                          <path d="M 40 54 L 60 46" stroke-width="2.5"/>
+                        </svg>
+                      </div>
+                      <div class="sim-target-action-badge" id="simTargetBadge">
+                        [적용 대상 : 병원성 미생물 99.999% 세포막 파괴]
+                      </div>
+                    </div>
+
+                    <div class="sim-number-big" id="gaugeDisplay">6,000 bar</div>
+                    <div class="sim-unit-sub" id="gaugeMpaDisplay">600 MPa (초고압 비열 살균 영역)</div>
+                  </div>
+
+                  <div class="sim-presets-row">
+                    <button class="preset-btn" onclick="setPresetPressure(3000)">
+                      <span class="bar-txt">3,000 bar</span>
+                      <span class="bar-desc" data-i18n="pre_desc_1">🦪 조개 탈각</span>
+                    </button>
+                    <button class="preset-btn" onclick="setPresetPressure(4500)">
+                      <span class="bar-txt">4,500 bar</span>
+                      <span class="bar-desc" data-i18n="pre_desc_2">🥤 음료 살균</span>
+                    </button>
+                    <button class="preset-btn" onclick="setPresetPressure(5500)">
+                      <span class="bar-txt">5,500 bar</span>
+                      <span class="bar-desc" data-i18n="pre_desc_3">🍲 HMR·과채</span>
+                    </button>
+                    <button class="preset-btn active" onclick="setPresetPressure(6000)">
+                      <span class="bar-txt">6,000 bar</span>
+                      <span class="bar-desc" data-i18n="pre_desc_4">🥩 육가공·병원균</span>
+                    </button>
+                  </div>
+
+                  <!-- Swapped: Pressure slider row on top -->
+                  <div class="sim-slider-row">
+                    <input type="range" id="pressureSlider" min="1000" max="6000" step="100" value="6000" oninput="updateSimulator(this.value)">
+                  </div>
+
+                  <!-- Guidance text below the slider -->
+                  <div class="sim-slider-guide-box">
+                    <span class="guide-icon">👆</span>
+                    <span class="guide-text" data-i18n="sim_slider_guide">압력 조절 슬라이더 : 좌우로 드래그하여 목표 수압(1,000 ~ 6,000 bar)을 설정하세요</span>
+                  </div>
+                </div>
+
+                <div class="sim-hud-cards">
+                  <div class="hud-status-card">
+                    <div class="hud-card-icon">🦠</div>
+                    <div class="hud-card-info">
+                      <div class="hud-card-title" data-i18n="hud_kill_title">현재 압력의 처리 효과</div>
+                      <div class="hud-card-val" id="simKillRate">99.999% 저감 (5-log)</div>
+                      <div class="hud-card-desc" id="simKillDesc">리스테리아 · 살모넬라 · 대장균 등 병원성 미생물</div>
+                    </div>
+                  </div>
+
+                  <div class="hud-status-card">
+                    <div class="hud-card-icon">🧪</div>
+                    <div class="hud-card-info">
+                      <div class="hud-card-title" data-i18n="hud_nut_title">영양소 &amp; 풍미 보존율</div>
+                      <div class="hud-card-val" id="simNutrition" data-i18n="hud_nut_val">맛·영양 최대 보존</div>
+                      <div class="hud-card-desc" data-i18n="hud_nut_desc">열 손상 없이 비타민 · 미네랄 · 고유 향미 유지</div>
+                    </div>
+                  </div>
+
+                  <div class="hud-status-card">
+                    <div class="hud-card-icon">🍱</div>
+                    <div class="hud-card-info">
+                      <div class="hud-card-title" data-i18n="hud_cat_title">권장 최적 적용 식품군</div>
+                      <div class="hud-card-val" id="simCategory">콜드브루, HMR, 가공육 전 제품군</div>
+                      <div class="hud-card-desc" id="simCategoryDesc">유통기한 최대 6배 연장, 프리미엄 클린 라벨</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Subview B: Requirement 2 (Top: Step 1~3, Bottom: Step 4~5 + Real Photos) with Bigger Cards & Bigger Typography -->
+            <div class="tech-subview" id="subview-proc">
+              <div class="proc-v3-layout">
+                
+                <!-- Upper Row: Step 1, Step 2, Step 3 (Larger size & fonts) -->
+                <div class="proc-v3-row-top">
+                  
+                  <!-- Step 1 -->
+                  <div class="kiosk-step-card-lg" onclick="openStepModal('step1')">
+                    <div class="img-holder">
+                      <img src="assets/process/step1_insert.jpg" alt="Step 1" loading="lazy" decoding="async">
+                      <div class="step-pill-badge">STEP 01</div>
+                      <div class="zoom-hint-tag" data-i18n="zoom_hint">🔍 확대보기</div>
+                    </div>
+                    <div class="body-holder">
+                      <div class="title-lg" data-i18n="step1_title">1단계 : 제품 바스켓 적재</div>
+                      <div class="desc-lg" data-i18n="step1_sub">밀봉 포장된 제품을 HPP 전용 내압 바스켓에 정렬</div>
+                    </div>
+                  </div>
+
+                  <!-- Step 2 -->
+                  <div class="kiosk-step-card-lg" onclick="openStepModal('step2')">
+                    <div class="img-holder">
+                      <img src="assets/process/step2_insert.jpg" alt="Step 2" loading="lazy" decoding="async">
+                      <div class="step-pill-badge">STEP 02</div>
+                      <div class="zoom-hint-tag" data-i18n="zoom_hint">🔍 확대보기</div>
+                    </div>
+                    <div class="body-holder">
+                      <div class="title-lg" data-i18n="step2_title">2단계 : 베셀 내부 투입</div>
+                      <div class="desc-lg" data-i18n="step2_sub">자동 인피드 컨베이어를 통한 초고압 실린더 이송</div>
+                    </div>
+                  </div>
+
+                  <!-- Step 3 -->
+                  <div class="kiosk-step-card-lg" onclick="openStepModal('step3')">
+                    <div class="img-holder">
+                      <img src="assets/process/step3_fill_pressurize.jpg" alt="Step 3" loading="lazy" decoding="async">
+                      <div class="step-pill-badge">STEP 03</div>
+                      <div class="zoom-hint-tag" data-i18n="zoom_hint">🔍 확대보기</div>
+                    </div>
+                    <div class="body-holder">
+                      <div class="title-lg" data-i18n="step3_title">3단계 : 베셀 내 충수 &amp; 탈기</div>
+                      <div class="desc-lg" data-i18n="step3_sub">상온 정제수 완충 및 내부 잔류 공기 완전 배출</div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <!-- Lower Row: Step 4, Step 5 (Larger size) + Real Photos Card -->
+                <div class="proc-v3-row-bottom">
+                  
+                  <!-- Step 4 -->
+                  <div class="kiosk-step-card-lg" onclick="openStepModal('step4')">
+                    <div class="img-holder">
+                      <img src="assets/process/step4_hold_sterilize.jpg" alt="Step 4" loading="lazy" decoding="async">
+                      <div class="step-pill-badge" style="border-color: var(--gold); color: var(--gold);">STEP 04</div>
+                      <div class="zoom-hint-tag" data-i18n="zoom_hint">🔍 확대보기</div>
+                    </div>
+                    <div class="body-holder">
+                      <div class="title-lg" data-i18n="step4_title">4단계 : 6,000 bar 초고압 가압 및 살균 유지</div>
+                      <div class="desc-lg" data-i18n="step4_sub">6,000 bar 정수압으로 유해 미생물 세포막을 파괴 (<span class="nw">5-log</span> 저감)</div>
+                    </div>
+                  </div>
+
+                  <!-- Step 5 -->
+                  <div class="kiosk-step-card-lg" onclick="openStepModal('step5')">
+                    <div class="img-holder">
+                      <img src="assets/process/step5_discharge.jpg" alt="Step 5" loading="lazy" decoding="async">
+                      <div class="step-pill-badge">STEP 05</div>
+                      <div class="zoom-hint-tag" data-i18n="zoom_hint">🔍 확대보기</div>
+                    </div>
+                    <div class="body-holder">
+                      <div class="title-lg" data-i18n="step5_title">5단계 : 감압 및 완제품 자동 배출</div>
+                      <div class="desc-lg" data-i18n="step5_sub">대기압 안전 감압 후 콜드체인 출하 라인으로 자동 배출</div>
+                    </div>
+                  </div>
+
+                  </div>
+
+              </div>
+            </div>
+
+            <!-- Subview C: Comparison Infographic Cards -->
+            <div class="tech-subview" id="subview-comp">
+              <div class="comp-cards-layout">
+                <div class="comp-hero-card good">
+                  <div class="comp-card-header">
+                    <div class="comp-header-icon">🌿</div>
+                    <div class="comp-header-title" data-i18n="comp_card_hpp">HiPPo HPP (초고압 살균)</div>
+                  </div>
+                  <div class="comp-points-list">
+                    <div class="comp-point-item"><div class="bullet">✓</div><div class="pt-txt"><small data-i18n="comp_k1">처리 온도</small><span data-i18n="comp_g1">5 ~ 20℃ 저온·상온 비열처리</span></div></div>
+                    <div class="comp-point-item"><div class="bullet">✓</div><div class="pt-txt"><small data-i18n="comp_k2">풍미</small><span data-i18n="comp_g2">원재료 본연의 맛·향·식감 보존</span></div></div>
+                    <div class="comp-point-item"><div class="bullet">✓</div><div class="pt-txt"><small data-i18n="comp_k3">영양</small><span data-i18n="comp_g3">비타민C 등 열에 약한 영양소 유지</span></div></div>
+                    <div class="comp-point-item"><div class="bullet">✓</div><div class="pt-txt"><small data-i18n="comp_k4">첨가물</small><span data-i18n="comp_g4">방부제·보존료 없이 클린 라벨 구현</span></div></div>
+                    <div class="comp-point-item"><div class="bullet">✓</div><div class="pt-txt"><small data-i18n="comp_k5">위생</small><span data-i18n="comp_g5">밀봉 포장 상태로 처리해 2차 오염 방지</span></div></div>
+                  </div>
+                </div>
+
+                <div class="comp-hero-card bad">
+                  <div class="comp-card-header">
+                    <div class="comp-header-icon">🔥</div>
+                    <div class="comp-header-title" data-i18n="comp_card_heat">기존 열처리 (고온 가열)</div>
+                  </div>
+                  <div class="comp-points-list">
+                    <div class="comp-point-item"><div class="bullet">✗</div><div class="pt-txt"><small data-i18n="comp_k1">처리 온도</small><span data-i18n="comp_b1">60 ~ 130℃ 고온 열처리</span></div></div>
+                    <div class="comp-point-item"><div class="bullet">✗</div><div class="pt-txt"><small data-i18n="comp_k2">풍미</small><span data-i18n="comp_b2">가열취(익은 냄새) 발생 및 향미 소실</span></div></div>
+                    <div class="comp-point-item"><div class="bullet">✗</div><div class="pt-txt"><small data-i18n="comp_k3">영양</small><span data-i18n="comp_b3">열에 약한 비타민C 등 영양소 손실</span></div></div>
+                    <div class="comp-point-item"><div class="bullet">✗</div><div class="pt-txt"><small data-i18n="comp_k4">첨가물</small><span data-i18n="comp_b4">유통기한 확보를 위해 보존제에 의존</span></div></div>
+                    <div class="comp-point-item"><div class="bullet">✗</div><div class="pt-txt"><small data-i18n="comp_k5">위생</small><span data-i18n="comp_b5">살균 후 충전·포장 과정의 재오염 위험</span></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ================= 3. APPLICATIONS PANEL (Requirement 3: Real Photos in 4 Left Product Boxes) ================= -->
+        <section class="panel" id="panel-app">
+          <div class="app-stage">
+            
+            <!-- 5 Big Touch Tab Pills -->
+            <div class="app-tab-pills">
+              <button class="app-tab-pill active" onclick="switchAppCategory('coldbrew', this)">
+                <img src="assets/icons_3d/cat_coffee.png" alt="" class="tab-icon-3d" decoding="async"> <span>콜드브루 &amp; 음료</span>
+              </button>
+              <button class="app-tab-pill" onclick="switchAppCategory('hmr', this)">
+                <img src="assets/icons_3d/cat_hmr.png" alt="" class="tab-icon-3d" decoding="async"> <span>HMR &amp; 간편식</span>
+              </button>
+              <button class="app-tab-pill" onclick="switchAppCategory('meat', this)">
+                <img src="assets/icons_3d/cat_meat.png" alt="" class="tab-icon-3d" decoding="async"> <span>가공육 &amp; 육류</span>
+              </button>
+              <button class="app-tab-pill" onclick="switchAppCategory('fruit', this)">
+                <img src="assets/icons_3d/cat_fruit.png" alt="" class="tab-icon-3d" decoding="async"> <span>과채가공 &amp; 퓌레</span>
+              </button>
+              <button class="app-tab-pill" onclick="switchAppCategory('seafood', this)">
+                <img src="assets/icons_3d/cat_seafood.png" alt="" class="tab-icon-3d" decoding="async"> <span>수산물 &amp; 탈각</span>
+              </button>
+            </div>
+
+            <!-- Requirement 3: 4 Product Boxes with Real Photos on LEFT, Summary Card on RIGHT -->
+            <div class="app-showcase-split-v3">
+              
+              <!-- Left: 4 Product Cards with REAL FOOD PHOTOS -->
+              <div class="app-prods-grid-v3" id="appProdsGrid">
+                <!-- Populated dynamically with high-resolution food photos -->
+              </div>
+
+              <!-- Right: Hero Feature Card -->
+              <div class="app-hero-card-v3">
+                <div class="app-hero-top">
+                  <h3 id="appHeroTitle">☕ 프리미엄 콜드브루 &amp; 착즙 음료</h3>
+                  <p class="lead" id="appHeroLead">
+                    열을 가하지 않고 6,000 bar 수압만으로 유해균을 제어하여 갓 추출한 향미와 신선함을 최대 60일까지 생생하게 유지합니다.
+                  </p>
+                </div>
+
+                <div class="app-check-list" id="appCheckList">
+                  <div class="app-check-item"><div class="chk">✓</div><span>원두 고유의 섬세한 꽃 향·과일 산미 손실 최소화</span></div>
+                  <div class="app-check-item"><div class="chk">✓</div><span>보존제 없이 냉장 유통기한 30~60일 연장 실현</span></div>
+                  <div class="app-check-item"><div class="chk">✓</div><span>착즙주스·생과일 스무디의 비타민C 손실을 줄인 비열 살균</span></div>
+                </div>
+
+                <div class="app-spec-pills-row" id="appSpecPills">
+                  <span class="app-spec-pill">권장 압력: 4,000 ~ 6,000 bar</span>
+                  <span class="app-spec-pill">처리 온도: 상온 (15~20℃)</span>
+                  <span class="app-spec-pill">처리 시간: 2~3분 유지</span>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ================= 4. EQUIPMENT PANEL ================= -->
+        <section class="panel" id="panel-equip">
+          <div class="equip-stage">
+            <!-- Equipment Intro Banner -->
+            <div class="equip-intro-banner">
+              <div class="equip-intro-badge" data-i18n="equip_intro_badge">
+                <span class="equip-pulse-dot"></span> HiPPo 전 라인업
+              </div>
+              <div class="equip-intro-text" data-i18n="equip_intro_headline">
+                0.3ℓ 실험실용 R&amp;D 장비부터 550ℓ 산업용 대형 장비까지 직접 설계·제작합니다.
+              </div>
+            </div>
+
+            <div class="equip-models-row">
+              <div class="kiosk-equip-card" onclick="selectModel(0, this)">
+                <div class="equip-img-holder"><img src="assets/equipment/equip_img01.png" alt="Mini HiPPo" loading="lazy" decoding="async"></div>
+                <div class="equip-title-block">
+                  <div class="title">Mini HiPPo</div>
+                  <div class="vol">0.3 ℓ</div>
+                  <div class="equip-card-desc" data-i18n="equip_m1_desc">소용량 시료 테스트 및 대학·식품 연구소 전용 컴팩트 초고압 살균기</div>
+                  <span class="tag" data-i18n="tag_m1">R&amp;D 연구개발용</span>
+                </div>
+              </div>
+
+              <div class="kiosk-equip-card" onclick="selectModel(1, this)">
+                <div class="equip-img-holder"><img src="assets/equipment/equip_img02.png" alt="Small HiPPo" loading="lazy" decoding="async"></div>
+                <div class="equip-title-block">
+                  <div class="title">Small HiPPo</div>
+                  <div class="vol">20 ~ 50 ℓ</div>
+                  <div class="equip-card-desc" data-i18n="equip_m2_desc">스타트업 및 지역 중소 식품 가공 공장에 최적화된 실속형 엔트리 모델</div>
+                  <span class="tag" data-i18n="tag_m2">중소형 생산용</span>
+                </div>
+              </div>
+
+              <div class="kiosk-equip-card active" onclick="selectModel(2, this)">
+                <div class="equip-img-holder"><img src="assets/equipment/equip_img03.png" alt="Medium HiPPo" loading="lazy" decoding="async"></div>
+                <div class="equip-title-block">
+                  <div class="title">Medium HiPPo</div>
+                  <div class="vol">100 ~ 150 ℓ</div>
+                  <div class="equip-card-desc" data-i18n="equip_m3_desc">중대형 식품 제조사의 연속 양산 라인을 책임지는 핵심 주력 설비</div>
+                  <span class="tag" data-i18n="tag_m3">중대형 양산용</span>
+                </div>
+              </div>
+
+              <div class="kiosk-equip-card" onclick="selectModel(3, this)">
+                <div class="equip-img-holder"><img src="assets/equipment/equip_img04.png" alt="Large HiPPo" loading="lazy" decoding="async"></div>
+                <div class="equip-title-block">
+                  <div class="title">Large HiPPo</div>
+                  <div class="vol">350 ~ 550 ℓ</div>
+                  <div class="equip-card-desc" data-i18n="equip_m4_desc">글로벌 대기업 및 대규모 HPP 외주 전문 톨링 플랜트용 플래그십 시스템</div>
+                  <span class="tag" data-i18n="tag_m4">산업용 대용량 플랜트</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dynamic Equipment Spec HUD Console -->
+            <div class="equip-hud-console">
+              <div class="equip-hud-header">
+                <div class="equip-hud-title-col">
+                  <div class="equip-hud-title">
+                    <span>⚙️</span> <span id="hudModelName">Medium HiPPo 주요 제원</span>
+                  </div>
+                </div>
+                <button class="btn-view-spec-modal" onclick="openSpecModal()" data-i18n="btn_view_full_spec">
+                  📋 전체 모델 상세 제원표 보기 ↗
+                </button>
+              </div>
+
+              <div class="equip-hud-metrics-row">
+                <div class="hud-metric-tile">
+                  <span class="k-lbl" data-i18n="spec_k_cap">처리 용량</span>
+                  <span class="k-val" id="hudCapVal">100 ~ 150 ℓ</span>
+                </div>
+                <div class="hud-metric-tile">
+                  <span class="k-lbl" data-i18n="spec_k_dim">챔버 규격 (내경 × 길이)</span>
+                  <span class="k-val" id="hudDimVal">Ø 250 × 2,300 ㎜</span>
+                </div>
+                <div class="hud-metric-tile">
+                  <span class="k-lbl" data-i18n="spec_k_cyc">시간당 사이클 / 생산능력</span>
+                  <span class="k-val" id="hudCycVal">7~8 회/h (90 ℓ/Cycle)</span>
+                </div>
+                <div class="hud-metric-tile">
+                  <span class="k-lbl" data-i18n="spec_k_wt">장비 총 중량</span>
+                  <span class="k-val" id="hudWtVal">45.0 ton</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= 5. VIDEO PANEL ================= -->
+        <section class="panel" id="panel-video">
+          <div class="video-cinema-stage">
+            <div class="video-mode-pills">
+              <button class="video-mode-pill active" onclick="switchVideo('local_main', this)">
+                <img src="assets/icons_3d/vtab_brand.png" alt="" style="width:24px; vertical-align:middle;" decoding="async">
+                <span data-i18n="v_tab_1">HPP 브랜드 영상</span>
+              </button>
+              <button class="video-mode-pill" onclick="switchVideo('local_intro', this)">
+                <img src="assets/icons_3d/nav_equip.png" alt="" style="width:24px; vertical-align:middle;">
+                <span data-i18n="v_tab_2">HPP 기술 &amp; 장비 소개</span>
+              </button>
+            </div>
+
+            <div class="video-player-cinema-box">
+              <video id="cinemaVideoPlayer" controls playsinline loop preload="metadata">
+                <source id="cinemaVideoSrc" src="assets/videos/hpp_main_visual_R2.mp4" type="video/mp4">
+              </video>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= 6. CONTACT PANEL (Restored Info + Real Google Map + No Kiosk Inquiry Form) ================= -->
+        <section class="panel" id="panel-contact">
+          <div class="contact-stage-v6">
+            
+            <!-- Left Column: 회사 정보 · 오시는 길 (단일 카드) -->
+            <div class="contact-left-col-v6">
+              <div class="contact-card-v6 contact-unified-v7">
+
+                <div class="contact-card-header">
+                  <div class="contact-header-left">
+                    <span class="contact-header-icon">🏢</span>
+                    <h3 class="contact-title-lg" data-i18n="contact_title">회사 정보 · 오시는 길</h3>
+                  </div>
+                </div>
+
+                <div class="about-meta-grid-v6">
+                  <div class="about-meta-item-v6">
+                    <div class="about-icon-box-v6"><img src="assets/icons_3d/contact_phone.png" alt="" class="contact-icon-3d" decoding="async"></div>
+                    <div class="about-text-v6">
+                      <div class="about-lbl-v6" data-i18n="contact_lbl_tel">전화 · 팩스</div>
+                      <div class="about-val-v6">TEL 042-931-6100<br>FAX 042-931-6104</div>
+                    </div>
+                  </div>
+                  <div class="about-meta-item-v6">
+                    <div class="about-icon-box-v6"><img src="assets/icons_3d/contact_globe.png" alt="" class="contact-icon-3d" decoding="async"></div>
+                    <div class="about-text-v6">
+                      <div class="about-lbl-v6" data-i18n="contact_lbl_web">홈페이지</div>
+                      <div class="about-val-v6">hpp.co.kr <span class="sep">|</span> suflux.com</div>
+                    </div>
+                  </div>
+                  <div class="about-meta-item-v6">
+                    <div class="about-icon-box-v6"><img src="assets/icons_3d/contact_briefcase.png" alt="" class="contact-icon-3d" decoding="async"></div>
+                    <div class="about-text-v6">
+                      <div class="about-lbl-v6" data-i18n="contact_lbl_biz">사업 분야</div>
+                      <div class="about-val-v6" data-i18n="contact_val_biz">HPP 장비 제조 · 톨링 서비스 · R&amp;D 컨설팅</div>
+                    </div>
+                  </div>
+                  <div class="about-meta-item-v6">
+                    <div class="about-icon-box-v6"><img src="assets/icons_3d/contact_factory.png" alt="" class="contact-icon-3d" decoding="async"></div>
+                    <div class="about-text-v6">
+                      <div class="about-lbl-v6" data-i18n="contact_lbl_fam">자회사</div>
+                      <div class="about-val-v6" data-i18n="contact_val_fam">하이플럭스 (초고압 피팅)<br>펌스터 (초고압 펌프)</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 사업장 선택 탭 -->
+                <div class="address-buttons-grid-v6">
+                  <button class="address-btn-v6 active" id="btnAddrHq" onclick="switchLocationMap('hq', this)">
+                    <span class="addr-btn-icon">🏢</span>
+                    <span class="addr-btn-title" data-i18n="loc_tag_hq">본사 · 제1공장</span>
+                  </button>
+                  <button class="address-btn-v6" id="btnAddrP2" onclick="switchLocationMap('p2', this)">
+                    <span class="addr-btn-icon">🏭</span>
+                    <span class="addr-btn-title" data-i18n="loc_tag_p2">제2공장</span>
+                  </button>
+                  <button class="address-btn-v6" id="btnAddrP3" onclick="switchLocationMap('p3', this)">
+                    <span class="addr-btn-icon">🔬</span>
+                    <span class="addr-btn-title" data-i18n="loc_tag_p3">제3공장 · 기술연구소</span>
+                  </button>
+                </div>
+
+                <!-- 지도 + 주소 -->
+                <div class="google-map-container-v6">
+                  <div class="map-content-wrapper">
+                    <div id="offlineMapView" class="offline-map-view">
+                      <div class="offline-map-canvas-col" id="offlineMapCanvasCol"></div>
+                      <div class="offline-map-data-col" id="offlineMapDataCol"></div>
+                    </div>
+                    <div id="onlineMapView" class="online-map-view" style="display: none; width: 100%; height: 100%; position: relative;">
+                      <iframe id="contactMapIframe" title="일신오토클레이브 지도"
+                        src="about:blank" data-src="https://maps.google.com/maps?q=36.419664,127.411491&t=&z=17&ie=UTF8&iwloc=&output=embed"
+                        width="100%" height="100%" style="border: 0; width: 100%; height: 100%;" loading="lazy"></iframe>
+                      <div id="mapOfflineFallback" style="display: none; position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: rgba(7, 25, 15, 0.95); flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; z-index: 5;">
+                        <div style="font-size: 40px; margin-bottom: 8px;">📶</div>
+                        <div style="font-size: 22px; font-weight: 800; color: var(--green-neon); margin-bottom: 6px;" data-i18n="map_offline_net_title">현재 오프라인 환경입니다</div>
+                        <div style="font-size: 18px; color: var(--white-dim);" data-i18n="map_offline_net_desc">구글 지도를 불러올 수 없습니다.</div>
+                      </div>
+                    </div>
+                    <!-- 인터넷 연결 시에만 표시되는 지도 전환 버튼 -->
+                    <div class="map-mode-float">
+                      <button class="map-mode-btn active" id="btnModeOffline" onclick="setMapMode('offline')">🗺️ <span data-i18n="map_mode_offline">약도</span></button>
+                      <button class="map-mode-btn" id="btnModeOnline" onclick="setMapMode('online')">🌐 <span data-i18n="map_mode_online">구글 지도</span></button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Right Column: Card 3: 문의하기 (QR Code with LARGER fonts, no link text, no camera text) -->
+            <div class="contact-card-v6 card-qr-v6">
+              <div class="qr-header-v6">
+                <span class="qr-header-icon">📱</span>
+                <h3 class="qr-title-v6" data-i18n="qr_box_title">문의하기</h3>
+              </div>
+              
+              <div class="qr-holder-box-v6" id="qrContainer"></div>
+              
+              <p class="qr-scan-prompt-v6" data-i18n="qr_prompt">
+                휴대폰 카메라로 QR코드를 찍으면<br><strong>온라인 문의 게시판</strong>으로 바로 연결됩니다.
+              </p>
+
+              <!-- 3 Service Highlights with LARGER fonts (19.5px) -->
+              <div class="qr-service-list-v6">
+                <div class="qr-service-pill-v6" data-i18n="qr_pill_1">⚡ 맞춤 견적 문의</div>
+                <div class="qr-service-pill-v6" data-i18n="qr_pill_2">🧪 샘플 테스트 신청</div>
+                <div class="qr-service-pill-v6" data-i18n="qr_pill_3">📦 OEM · 톨링 상담</div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ===== FULLSCREEN IMAGE MODAL ===== -->
+  <div class="kiosk-modal-backdrop" id="imgModal">
+    <div class="kiosk-modal-window">
+      <div class="kiosk-modal-header">
+        <h3 id="modalTitle" data-i18n="modal_img_title">상세 이미지 보기</h3>
+        <button class="kiosk-modal-close" onclick="closeImgModal()">✕</button>
+      </div>
+      <div class="kiosk-modal-body">
+        <img id="modalImg" src="" alt="Detail" decoding="async">
+        <div class="kiosk-modal-desc-col">
+          <p id="modalDesc"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FULL EQUIPMENT SPEC TABLE MODAL ===== -->
+  <div class="kiosk-modal-backdrop" id="specTableModal">
+    <div class="kiosk-modal-window" style="width: 1400px; max-height: 850px;">
+      <div class="kiosk-modal-header">
+        <h3 data-i18n="spec_modal_h">📋 HiPPo HPP 8종 전 모델 상세 제원표</h3>
+        <button class="kiosk-modal-close" onclick="closeSpecModal()">✕</button>
+      </div>
+      <div class="kiosk-modal-body" style="padding: 24px; flex-direction: column;">
+        <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 21px;">
+          <thead>
+            <tr style="background: rgba(116, 227, 154, 0.15); color: var(--green-neon); border-bottom: 2px solid var(--border);">
+              <th style="padding: 14px;" data-i18n="th_m_name">모델명</th>
+              <th data-i18n="th_m_cap">처리 용량</th>
+              <th data-i18n="th_m_id">챔버 내경</th>
+              <th data-i18n="th_m_len">챔버 길이</th>
+              <th data-i18n="th_m_time">사이클 타임</th>
+              <th data-i18n="th_m_out">사이클당 생산량</th>
+              <th data-i18n="th_m_wt">장비 중량</th>
+            </tr>
+          </thead>
+          <tbody id="fullSpecTableBody" style="color: var(--white-dim);">
+            <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 12px; font-weight:700; color:var(--white);">HiPPo 0.3</td><td>0.3 ℓ</td><td>Ø 50 ㎜</td><td>150 ㎜</td><td>7 ~ 8 회/h</td><td>-</td><td>1.2 ton</td></tr>
+            <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 12px; font-weight:700; color:var(--white);">HiPPo 20</td><td>20 ℓ</td><td>Ø 160 ㎜</td><td>1,000 ㎜</td><td>7 ~ 8 회/h</td><td>12 ℓ/Cycle</td><td>8.0 ton</td></tr>
+            <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 12px; font-weight:700; color:var(--white);">HiPPo 50</td><td>50 ℓ</td><td>Ø 200 ㎜</td><td>1,600 ㎜</td><td>7 ~ 8 회/h</td><td>30 ℓ/Cycle</td><td>15.0 ton</td></tr>
+            <tr style="border-bottom: 1px solid var(--border); background: rgba(116, 227, 154, 0.08);"><td style="padding: 12px; font-weight:700; color:var(--green-neon);">HiPPo 100</td><td>100 ℓ</td><td>Ø 250 ㎜</td><td>2,040 ㎜</td><td>7 ~ 8 회/h</td><td>60 ℓ/Cycle</td><td>25.0 ton</td></tr>
+            <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 12px; font-weight:700; color:var(--white);">HiPPo 150</td><td>150 ℓ</td><td>Ø 250 ㎜</td><td>3,060 ㎜</td><td>7 ~ 8 회/h</td><td>90 ℓ/Cycle</td><td>45.0 ton</td></tr>
+            <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 12px; font-weight:700; color:var(--white);">HiPPo 350</td><td>350 ℓ</td><td>Ø 380 ㎜</td><td>3,080 ㎜</td><td>7 ~ 8 회/h</td><td>210 ℓ/Cycle</td><td>85.0 ton</td></tr>
+            <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 12px; font-weight:700; color:var(--white);">HiPPo 420</td><td>420 ℓ</td><td>Ø 420 ㎜</td><td>3,030 ㎜</td><td>7 ~ 10 회/h</td><td>252 ℓ/Cycle</td><td>98.0 ton</td></tr>
+            <tr><td style="padding: 12px; font-weight:700; color:var(--white);">HiPPo 550</td><td>550 ℓ</td><td>Ø 480 ㎜</td><td>3,050 ㎜</td><td>7 ~ 10 회/h</td><td>330 ℓ/Cycle</td><td>120.0 ton</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  </div> <!-- end #kiosk-scaler -->
+
+  <!-- ===== SCRIPT ===== -->
+  <script>
+    let currentLang = 'ko';
+    let currentModelIdx = 2; // Medium HiPPo default
+    let idleTimer = null;
+
+    // Complete Bilingual Dictionary (Includes all 5 new requirements)
+    const I18N = {
+      ko: {
+        nav_home: "홈",
+        nav_tech: "기술 소개",
+        nav_app: "적용 분야",
+        nav_equip: "장비 소개",
+        nav_video: "영상관",
+        nav_contact: "상담 문의",
+        home_tag: "<span>●</span> 일신오토클레이브 · 초고압 살균 솔루션",
+        home_title: "맛과 영양은 <span class='hl-green'>그대로,</span><br>신선함은 6배 <span class='hl-gold'>오래.</span>",
+        home_desc: "열 대신 <strong>6,000 bar의 초고압</strong>으로 식품 본연의 맛·영양을 보존하고 유해균을 효과적으로 제어하는 친환경 비열 살균 솔루션입니다.",
+        home_cta_tech: "🔬 초고압 원리 체험하기",
+        home_cta_app: "🍱 식품 적용분야 둘러보기",
+        btn_full_video_main: "소개영상보기",
+        stat_p_lbl: "최대 처리 압력",
+        stat_life_val: "최대 6<small>배</small>",
+        stat_life_lbl: "유통기한 연장",
+        stat_temp_val: "0<small>회 가열</small>",
+        stat_temp_lbl: "비열처리 신선살균",
+        stat_cap_val: "350<small>L</small>",
+        stat_cap_lbl: "산업용 대용량 모델",
+        tech_seg_sim: "⚡ 6,000 bar 수압 시뮬레이터",
+        tech_seg_proc: "🔄 HPP 5단계 공정",
+        tech_seg_comp: "🌿 HPP vs 기존 가열살균 비교",
+        sim_card_title: "가압 수압 제어 컨트롤러",
+        sim_card_sub: "슬라이더를 드래그하거나 압력 프리셋을 터치해 보세요.",
+        sim_slider_guide: "압력 조절 슬라이더 : 좌우로 드래그하여 목표 수압(1,000 ~ 6,000 bar)을 설정하세요",
+        pre_desc_1: "🦪 조개 탈각",
+        pre_desc_2: "🥤 음료 살균",
+        pre_desc_3: "🍲 HMR·과채",
+        pre_desc_4: "🥩 육가공·병원균",
+        hud_kill_title: "현재 압력의 처리 효과",
+        hud_nut_title: "영양소 &amp; 풍미 보존율",
+        hud_nut_desc: "열 손상 없이 비타민 · 미네랄 · 고유 향미 유지",
+        hud_cat_title: "권장 최적 적용 식품군",
+        step1_title: "1단계 : 제품 바스켓 적재",
+        step1_sub: "밀봉 포장된 제품을 HPP 전용 내압 바스켓에 정렬",
+        step2_title: "2단계 : 베셀 내부 투입",
+        step2_sub: "자동 인피드 컨베이어를 통한 초고압 실린더 이송",
+        step3_title: "3단계 : 베셀 내 충수 &amp; 탈기",
+        step3_sub: "상온 정제수 완충 및 내부 잔류 공기 완전 배출",
+        step4_title: "4단계 : 6,000 bar 초고압 가압 및 살균 유지",
+        step4_sub: "6,000 bar 정수압으로 유해 미생물 세포막을 파괴 (<span class=\"nw\">5-log</span> 저감)",
+        step5_title: "5단계 : 감압 및 완제품 자동 배출",
+        step5_sub: "대기압 안전 감압 후 콜드체인 출하 라인으로 자동 배출",
+        real_deck_title: "HPP 현장 가동 실사 2종",
+        real_1_badge: "🖥️ HMI 운용실",
+        real_2_badge: "📦 자동 배출 라인",
+        comp_card_hpp: "HiPPo HPP (초고압 살균)",
+        comp_card_heat: "기존 열처리 (고온 가열)",
+        comp_g1: "5 ~ 20℃ 저온·상온 비열처리",
+        comp_g2: "원재료 본연의 맛·향·식감 보존",
+        comp_g4: "방부제·보존료 없이 클린 라벨 구현",
+        comp_g5: "밀봉 포장 상태로 처리해 2차 오염 방지",
+        comp_b1: "60 ~ 130℃ 고온 열처리",
+        comp_b2: "가열취(익은 냄새) 발생 및 향미 소실",
+        comp_b3: "열에 약한 비타민C 등 영양소 손실",
+        comp_b4: "유통기한 확보를 위해 보존제에 의존",
+        comp_b5: "살균 후 충전·포장 과정의 재오염 위험",
+        comp_g3: "비타민C 등 열에 약한 영양소 유지",
+        comp_k1: "처리 온도", comp_k2: "풍미", comp_k3: "영양", comp_k4: "첨가물", comp_k5: "위생",
+        equip_intro_badge: '<span class="equip-pulse-dot"></span> HiPPo 전 라인업',
+        equip_intro_headline: '0.3ℓ 실험실용 R&amp;D 장비부터 550ℓ 산업용 대형 장비까지 직접 설계·제작합니다.',
+        equip_m1_desc: '소용량 시료 테스트 및 대학·식품 연구소 전용 컴팩트 초고압 살균기',
+        equip_m2_desc: '스타트업 및 지역 중소 식품 가공 공장에 최적화된 실속형 엔트리 모델',
+        equip_m3_desc: '중대형 식품 제조사의 연속 양산 라인을 책임지는 핵심 주력 설비',
+        equip_m4_desc: '글로벌 대기업 및 대규모 HPP 외주 전문 톨링 플랜트용 플래그십 시스템',
+        tag_m1: "R&amp;D 연구개발용",
+        tag_m2: "중소형 생산용",
+        tag_m3: "중대형 양산용",
+        tag_m4: "산업용 대용량 플랜트",
+        btn_view_full_spec: "📋 전체 모델 상세 제원표 보기 ↗",
+        spec_k_cap: "처리 용량",
+        spec_k_dim: "챔버 규격 (내경 × 길이)",
+        spec_k_cyc: "시간당 사이클 / 생산능력",
+        spec_k_wt: "장비 총 중량",
+        v_tab_1: "HPP 브랜드 영상",
+        v_tab_2: "HPP 기술 &amp; 장비 소개",
+        contact_title: "회사 정보 · 오시는 길",
+        map_card_title: "📍 본사 위치 지도",
+        loc_addr_hq_map: "대전광역시 유성구 테크노2로 255 (구글 지도 실시간 연동)",
+        qr_sub_text: "기본 카메라로 스캔하여 견적창 연결",
+        contact_lbl_tel: "전화 · 팩스",
+        contact_lbl_web: "홈페이지",
+        contact_lbl_fam: "자회사",
+        contact_val_fam: "하이플럭스 (초고압 피팅)<br>펌스터 (초고압 펌프)",
+        contact_lbl_biz: "사업 분야",
+        contact_val_biz: "HPP 장비 제조 · 톨링 서비스 · R&amp;D 컨설팅",
+        loc_tag_hq: "본사 · 제1공장",
+        loc_addr_hq: "대전 유성구 테크노2로 255 (탑립동)",
+        loc_tag_p2: "제2공장",
+        loc_addr_p2: "대전 유성구 갑천로 361-23 (문평동)",
+        loc_tag_p3: "제3공장 · 기술연구소",
+        loc_addr_p3: "대전 유성구 신동 657-5 (국제과학로 12)",
+        qr_box_title: "문의하기",
+        qr_prompt: "휴대폰 카메라로 QR코드를 찍으면<br><strong>온라인 문의 게시판</strong>으로 바로 연결됩니다.",
+        btn_inq_ext: "📝 키오스크에서 직접 문의창 열기 ↗",
+        spec_modal_h: "📋 HiPPo HPP 8종 전 모델 상세 제원표",
+        contact_portal_sub: "(포털: suflux.com)",
+        qr_pill_1: "⚡ 맞춤 견적 문의",
+        qr_pill_2: "🧪 샘플 테스트 신청",
+        qr_pill_3: "📦 OEM · 톨링 상담",
+        zoom_hint: "🔍 확대보기",
+        hud_nut_val: "맛·영양 최대 보존",
+        modal_img_title: "상세 이미지 보기",
+        th_m_name: "모델명",
+        th_m_cap: "처리 용량",
+        th_m_id: "챔버 내경",
+        th_m_len: "챔버 길이",
+        th_m_time: "사이클 타임",
+        th_m_out: "사이클당 생산량",
+        th_m_wt: "장비 중량",
+        map_mode_offline: "약도",
+        map_mode_online: "구글 지도",
+        map_offline_net_title: "현재 오프라인 환경입니다",
+        map_offline_net_desc: "구글 지도를 불러올 수 없습니다. 인터넷 없이 작동하는 상세 안내도를 확인해 보세요.",
+        btn_switch_offline: "🗺️ 상세 안내도로 전환",
+        lbl_road_addr: "도로명 주소",
+        lbl_jibun_addr: "지번 주소",
+        lbl_fac_role: "시설 역할 &amp; 설비",
+        lbl_trans_guide: "오시는 길 (교통)",
+        lbl_parking_info: "주차 및 방문 안내",
+        lbl_contact_direct: "대표 연락처",
+        map_offline_title: "사업장 위치 안내 (오프라인 모드)",
+        map_offline_desc: "<b style='color:var(--green-bright);'>본사 및 1공장 :</b> 대전 유성구 테크노2로 255<br><b style='color:var(--green-bright);'>2공장 :</b> 대전 유성구 갑천로 361-23, 25, 27<br><b style='color:var(--green-bright);'>3공장 &amp; 기술연구소 :</b> 대전 유성구 국제과학로 12 (신동 657-5)"
+      },
+      en: {
+        nav_home: "Home",
+        nav_tech: "Technology",
+        nav_app: "Applications",
+        nav_equip: "Equipment",
+        nav_video: "Video",
+        nav_contact: "Contact",
+        home_tag: "<span>●</span> ILSHINAUTOCLAVE · ECO-FRIENDLY HPP",
+        home_title: "Pure Flavor <span class='hl-green'>Preserved,</span><br>Freshness Lasting <span class='hl-gold'>6X.</span>",
+        home_desc: "Preserving natural taste, aroma, and nutrients with <strong>6,000 bar isostatic pressure</strong> without heat, inactivating pathogens with no additives.",
+        home_cta_tech: "🔬 Experience 6,000 bar Simulator",
+        home_cta_app: "🍱 Explore Food Applications",
+        btn_full_video_main: "Watch Intro Video",
+        stat_p_lbl: "Max Working Pressure",
+        stat_life_val: "Up to 6<small>X</small>",
+        stat_life_lbl: "Shelf Life Extension",
+        stat_temp_val: "Zero<small>Heat</small>",
+        stat_temp_lbl: "Cold Non-Thermal",
+        stat_cap_val: "350<small>L</small>",
+        stat_cap_lbl: "Industrial-Scale Model",
+        tech_seg_sim: "⚡ 6,000 bar Simulator",
+        tech_seg_proc: "🔄 5-Step Process",
+        tech_seg_comp: "🌿 HPP vs Thermal Comparison",
+        sim_card_title: "Isostatic Pressure Controller",
+        sim_card_sub: "Drag the slider or tap pressure presets.",
+        sim_slider_guide: "Isostatic Pressure Slider : Drag left or right to set target pressure (1,000 ~ 6,000 bar)",
+        pre_desc_1: "🦪 Shellfish Shucking",
+        pre_desc_2: "🥤 Beverages",
+        pre_desc_3: "🍲 HMR &amp; Produce",
+        pre_desc_4: "🥩 Meat &amp; Pathogens",
+        hud_kill_title: "Effect at This Pressure",
+        hud_nut_title: "Nutrient &amp; Aroma Retention",
+        hud_nut_desc: "Vitamins, minerals and natural flavor kept without heat damage",
+        hud_cat_title: "Optimal Recommended Foods",
+        step1_title: "Basket Loading",
+        step1_sub: "Sealed food aligned into specialized baskets",
+        step2_title: "Vessel Loading",
+        step2_sub: "Automated infeed conveyor into the cylinder",
+        step3_title: "Water Filling &amp; Deaeration",
+        step3_sub: "Purified water injection &amp; air removal",
+        step4_title: "6,000 bar Pressure Holding",
+        step4_sub: "Physical destruction of bacterial membranes",
+        step5_title: "Decompression &amp; Discharge",
+        step5_sub: "Safe release &amp; instant cold-chain delivery",
+        real_deck_title: "On-Site Production Photos",
+        real_1_badge: "🖥️ HMI Control Room",
+        real_2_badge: "📦 Discharge Line",
+        comp_card_hpp: "HiPPo HPP (Cold Pressure)",
+        comp_card_heat: "Thermal Pasteurization (Heat)",
+        comp_g1: "5 ~ 20°C non-thermal processing",
+        comp_g2: "Original taste, aroma &amp; crisp texture",
+        comp_g4: "Clean label without chemical preservatives",
+        comp_g5: "Final in-package treatment blocks recontamination",
+        comp_b1: "60 ~ 130°C high-heat processing",
+        comp_b2: "Cooked off-flavor and aroma loss",
+        comp_b3: "Loss of heat-sensitive nutrients like Vitamin&nbsp;C",
+        comp_b4: "Often relies on preservatives for shelf life",
+        comp_b5: "Re-contamination risk during filling &amp; packing",
+        comp_g3: "Keeps heat-sensitive nutrients like Vitamin&nbsp;C",
+        comp_k1: "Temperature", comp_k2: "Flavor", comp_k3: "Nutrition", comp_k4: "Additives", comp_k5: "Hygiene",
+        equip_intro_badge: '<span class="equip-pulse-dot"></span> HiPPo Full Lineup',
+        equip_intro_headline: 'Designed and built in-house, from 0.3L R&amp;D units to 550L industrial systems.',
+        equip_m1_desc: 'Compact R&D ultra-high pressure system for universities & pilot testing',
+        equip_m2_desc: 'Optimized entry-level commercial system for startups & regional processors',
+        equip_m3_desc: 'Robust industrial workhorse for continuous mass production at F&B lines',
+        equip_m4_desc: 'High-throughput flagship plant for global corporations & tolling facilities',
+        tag_m1: "R&amp;D Laboratory",
+        tag_m2: "Pilot / Small Production",
+        tag_m3: "Medium Mass Production",
+        tag_m4: "Industrial Flagship Plant",
+        btn_view_full_spec: "📋 View Complete Spec Sheet ↗",
+        spec_k_cap: "Vessel Capacity",
+        spec_k_dim: "Chamber Dimensions (ID × L)",
+        spec_k_cyc: "Cycles / Hourly Output",
+        spec_k_wt: "Total Machine Weight",
+        v_tab_1: "HPP Brand Film",
+        v_tab_2: "Technology &amp; Equipment",
+        contact_title: "Company Info &amp; Location",
+        contact_lbl_tel: "Phone / Fax",
+        contact_lbl_web: "Website",
+        contact_portal_sub: "(Portal: suflux.com)",
+        contact_lbl_fam: "Subsidiaries",
+        contact_val_fam: "Hiflux (High-Pressure Fittings)<br>Pumpster (High-Pressure Pumps)",
+        contact_lbl_biz: "Business Areas",
+        contact_val_biz: "HPP Systems · Tolling · R&amp;D Consulting",
+        loc_tag_hq: "HQ &amp; Plant 1",
+        loc_addr_hq: "255 Techno 2-ro (Tamnip-dong)",
+        loc_tag_p2: "Plant 2",
+        loc_addr_p2: "361-23 Gapcheon-ro (Munpyeong-dong)",
+        loc_tag_p3: "Plant 3 &amp; R&amp;D",
+        loc_addr_p3: "Sindong 657-5 (12 Gukjekwahak-ro)",
+        qr_box_title: "Get in Touch",
+        qr_prompt: "Scan with your phone camera<br>to open our <strong>online inquiry board</strong>.",
+        qr_pill_1: "⚡ Custom Quotation",
+        qr_pill_2: "🧪 Sample Test Request",
+        qr_pill_3: "📦 OEM &amp; Tolling",
+        zoom_hint: "🔍 View Large",
+        hud_nut_val: "Maximum Retention",
+        modal_img_title: "Detailed Image View",
+        spec_modal_h: "📋 HiPPo HPP 8 Models Complete Specification",
+        th_m_name: "Model",
+        th_m_cap: "Capacity",
+        th_m_id: "Inner Dia.",
+        th_m_len: "Length",
+        th_m_time: "Cycle Time",
+        th_m_out: "Output/Cycle",
+        th_m_wt: "Weight",
+        map_mode_offline: "Map",
+        map_mode_online: "Google Maps",
+        map_offline_net_title: "Currently in Offline Mode",
+        map_offline_net_desc: "Google Maps cannot be loaded without internet. Check out our high-definition offline map.",
+        btn_switch_offline: "🗺️ Switch to Detailed Map",
+        lbl_road_addr: "Road Address",
+        lbl_jibun_addr: "Lot Number (Jibun)",
+        lbl_fac_role: "Role &amp; Equipment",
+        lbl_trans_guide: "Directions &amp; Access",
+        lbl_parking_info: "Parking Information",
+        lbl_contact_direct: "Contact Direct",
+        map_offline_title: "Facility Locations (Offline Mode)",
+        map_offline_desc: "<b style='color:var(--green-bright);'>HQ &amp; Plant 1:</b> 255 Techno 2-ro, Yuseong-gu, Daejeon<br><b style='color:var(--green-bright);'>Plant 2:</b> 361-23 Gapcheon-ro, Yuseong-gu, Daejeon<br><b style='color:var(--green-bright);'>Plant 3 &amp; R&amp;D Center:</b> 12 Gukjekwahak-ro, Yuseong-gu, Daejeon (Sindong 657-5)"
+      }
+    };
+
+    // Requirement 3: 20 Products with Real Food Photos in assets/products/
+    const APP_DATA = {
+      coldbrew: {
+        title: { ko: "☕ 프리미엄 콜드브루 &amp; 착즙 음료", en: "☕ Premium Cold Brew &amp; Fresh Juices" },
+        lead: { 
+          ko: "열을 가하지 않고 6,000 bar 수압만으로 유해균을 제어하여 갓 추출한 향미와 신선함을 최대 60일까지 생생하게 유지합니다.",
+          en: "Cold brew coffee extracted at low temperatures immediately loses aromatics if heated. HPP maintains freshly brewed taste up to 60 days."
+        },
+        checks: {
+          ko: [
+            "원두 고유의 섬세한 꽃 향·과일 산미 손실 최소화",
+            "보존제 없이 냉장 유통기한 30~60일 연장 실현",
+            "착즙주스·생과일 스무디의 비타민C 손실을 줄인 비열 살균"
+          ],
+          en: [
+            "Minimal loss of delicate floral notes and fruit acidity",
+            "Extends refrigerated shelf life to 30~60 days without additives",
+            "Cold pasteurization of juices with minimal Vitamin&nbsp;C loss"
+          ]
+        },
+        pills: {
+          ko: ["권장 압력: 4,000 ~ 6,000 bar", "처리 온도: 5 ~ 20℃ (비가열)", "처리 시간: 2~3분 유지"],
+          en: ["Pressure: 4,000 ~ 6,000 bar", "Temp: 5 ~ 20°C (No Heat)", "Holding Time: 2~3 min"]
+        },
+        prods: [
+          { img: "assets/products/cb_coldbrew.jpg", name: { ko: "싱글오리진 콜드브루", en: "Single Origin Cold Brew" }, desc: { ko: "원두 본연의 향을 그대로", en: "Natural bean aroma preserved" } },
+          { img: "assets/products/cb_orange.jpg", name: { ko: "NFC 착즙 오렌지 주스", en: "NFC Cold-Pressed Juice" }, desc: { ko: "물 한 방울 안 섞은 생과일 맛", en: "Pure fresh juice with zero added water" } },
+          { img: "assets/products/cb_detox.jpg", name: { ko: "디톡스 클렌즈 주스", en: "Cleanse Smoothie" }, desc: { ko: "열에 약한 효소와 미네랄 활성 유지", en: "Preserves bioactive enzymes & minerals" } },
+          { img: "assets/products/cb_oatmilk.jpg", name: { ko: "식물성 오트 &amp; 아몬드유", en: "Oat &amp; Almond Milk" }, desc: { ko: "신선하고 부드러운 목넘김 보존", en: "Smooth plant-based velvety texture" } }
+        ]
+      },
+      hmr: {
+        title: { ko: "🍲 HMR(가정간편식) &amp; 신선 밀키트", en: "🍲 HMR &amp; Fresh Ready Meals" },
+        lead: {
+          ko: "기존 고온 레토르트의 눅눅해진 식감과 변색 문제를 해결하고 갓 만든 집밥 같은 품질을 전국 유통망에 공급합니다.",
+          en: "Resolves the soggy texture and browning of retort cooking, keeping home-cooked crispness across cold-chain distribution."
+        },
+        checks: {
+          ko: [
+            "조리 직후의 신선한 채소 아삭함과 고기 육즙 보존",
+            "방부제 무첨가로 소비자가 안심하는 '클린 라벨' 달성",
+            "밀봉 포장 상태로 처리해 유통 중 2차 오염 방지"
+          ],
+          en: [
+            "Preserves fresh vegetable crunch and succulent meat juices",
+            "Consumer-trusted Clean Label without preservatives",
+            "Post-packaging pasteurization blocks secondary contamination"
+          ]
+        },
+        pills: {
+          ko: ["권장 압력: 5,000 ~ 6,000 bar", "식품군: 국·반찬·죽·이유식", "처리 시간: 3분 내외"],
+          en: ["Pressure: 5,000 ~ 6,000 bar", "Category: Soups, Meals, Baby Food", "Time: ~3 min"]
+        },
+        prods: [
+          { img: "assets/products/hmr_stew.jpg", name: { ko: "프리미엄 탕·찌개류", en: "Premium Stews &amp; Soups" }, desc: { ko: "채소 식감 살아있는 깊은 국물", en: "Crisp vegetables in rich broth" } },
+          { img: "assets/products/hmr_side.jpg", name: { ko: "신선 냉장 반찬", en: "Chilled Deli Dishes" }, desc: { ko: "갈변 없는 나물과 조림 반찬", en: "Zero browning seasoned vegetables" } },
+          { img: "assets/products/hmr_baby.jpg", name: { ko: "친환경 유기농 이유식", en: "Organic Baby Food" }, desc: { ko: "방부제 제로 영유아 안심 먹거리", en: "Zero-additive infant nutrition" } },
+          { img: "assets/products/hmr_sauce.jpg", name: { ko: "신선 파스타 소스", en: "Fresh Pasta Sauces" }, desc: { ko: "허브와 토마토 본연의 생생함", en: "Fresh herb and ripe tomato notes" } }
+        ]
+      },
+      meat: {
+        title: { ko: "🥩 고급 육가공 &amp; 델리미트", en: "🥩 Premium Deli Meats &amp; Charcuterie" },
+        lead: {
+          ko: "열처리 없는 고압 살균으로 탄력 있는 텍스처와 육즙을 지키며, 슬라이스 햄류의 리스테리아균을 효과적으로 제어합니다.",
+          en: "Non-thermal high pressure protects juicy texture while effectively inactivating Listeria in sliced deli meats."
+        },
+        checks: {
+          ko: [
+            "열처리 없는 고압 살균으로 탄력 있는 텍스처와 육즙 보존",
+            "리스테리아 모노사이토제네스 5-log 저감으로 수출 규격 대응",
+            "슬라이스 햄류 유통기한 최대 90~120일까지 획기적 증대"
+          ],
+          en: [
+            "Preserves springy texture and rich natural meat juices",
+            "5-log reduction of Listeria monocytogenes for export compliance",
+            "Dramatically extends sliced ham shelf life up to 90~120 days"
+          ]
+        },
+        pills: {
+          ko: ["권장 압력: 6,000 bar", "병원성 미생물: 5-log 저감", "유통기한: 최대 120일"],
+          en: ["Pressure: 6,000 bar", "Pathogen Reduction: 5-log", "Shelf Life: Up to 120 Days"]
+        },
+        prods: [
+          { img: "assets/products/meat_sausage.jpg", name: { ko: "수제 소시지 &amp; 햄", en: "Artisan Sausages &amp; Ham" }, desc: { ko: "탱글한 껍질과 풍부한 육즙 유지", en: "Crisp casing and juicy mouthfeel" } },
+          { img: "assets/products/meat_bacon.jpg", name: { ko: "슬라이스 베이컨", en: "Sliced Bacon" }, desc: { ko: "선명한 육색과 지방 산패 지연", en: "Vibrant color, retarded oxidation" } },
+          { img: "assets/products/meat_hamon.jpg", name: { ko: "샤퀴테리 &amp; 하몽", en: "Charcuterie &amp; Jamon" }, desc: { ko: "발효 풍미를 해치지 않는 살균", en: "Preserves aged traditional notes" } },
+          { img: "assets/products/meat_chicken.jpg", name: { ko: "수비드 닭가슴살", en: "Sous-vide Chicken Breast" }, desc: { ko: "촉촉하고 부드러운 수분감 유지", en: "Tender, soft and moist texture" } }
+        ]
+      },
+      fruit: {
+        title: { ko: "🥑 과채 가공품 &amp; 과카몰리", en: "🥑 Fruit Purees &amp; Guacamole" },
+        lead: {
+          ko: "갈변을 유발하는 PPO 효소를 불활성화하여 방부제 없이도 신선한 연두빛 색상과 천연 비타민을 유지합니다.",
+          en: "Inactivates polyphenol oxidase (PPO) to prevent enzymatic browning, keeping vivid color without preservatives."
+        },
+        checks: {
+          ko: [
+            "세계적 베스트셀러 'HPP 과카몰리'의 핵심 살균 기술",
+            "망고, 딸기 퓌레의 생생한 천연 색소 및 과향 유지",
+            "갈변 효소 불활성화로 비타민C 소모 방지"
+          ],
+          en: [
+            "The global industry standard for preservative-free HPP guacamole",
+            "Retains vivid natural pigments and aromas of mango and berries",
+            "Inactivates browning enzymes to protect Vitamin C content"
+          ]
+        },
+        pills: {
+          ko: ["권장 압력: 5,500 ~ 6,000 bar", "효소 불활성: PPO 제어", "보관 기간: 40일 이상"],
+          en: ["Pressure: 5,500 ~ 6,000 bar", "Enzyme Control: PPO Inactivated", "Shelf Life: 40+ Days"]
+        },
+        prods: [
+          { img: "assets/products/fruit_guacamole.jpg", name: { ko: "프레시 과카몰리", en: "Fresh Guacamole" }, desc: { ko: "녹색 원형 보존 40일 이상", en: "Vibrant green color for 40+ days" } },
+          { img: "assets/products/fruit_puree.jpg", name: { ko: "생과일 베이스 퓌레", en: "Fresh Fruit Purees" }, desc: { ko: "카페·제과용 프리미엄 원료", en: "Premium ingredient for bakeries" } },
+          { img: "assets/products/fruit_paste.jpg", name: { ko: "유기농 야채 페이스트", en: "Organic Vegetable Paste" }, desc: { ko: "비가열 영양소 만점", en: "Zero heat loss of essential vitamins" } },
+          { img: "assets/products/fruit_dressing.jpg", name: { ko: "신선 샐러드 드레싱", en: "Fresh Salad Dressings" }, desc: { ko: "오일과 식초 본연의 상큼함", en: "Crisp natural acidity and olive oil notes" } }
+        ]
+      },
+      seafood: {
+        title: { ko: "🐟 수산물 살균 &amp; 패각류 자동 탈각", en: "🐟 Seafood Safety &amp; Automated Shucking" },
+        lead: {
+          ko: "칼을 대지 않고도 조개 알맹이와 갑각류 살이 온전하게 분리되며, 비브리오균까지 함께 제어합니다.",
+          en: "Instant relaxation of adductor muscles shucks oysters and shellfish cleanly with 95%+ meat yield while controlling Vibrio."
+        },
+        checks: {
+          ko: [
+            "비브리오균·노로바이러스 저감으로 생식 안전성 향상",
+            "생굴·가리비 무손상 자동 탈각으로 수율 95% 이상 달성",
+            "랍스터·대게 관절까지 살 부서짐 없이 깔끔하게 분리"
+          ],
+          en: [
+            "Safer raw shellfish by reducing Vibrio and Norovirus",
+            "Automated oyster shucking achieves over 95% intact meat yield",
+            "Flawless meat extraction from lobster and crab claws"
+          ]
+        },
+        pills: {
+          ko: ["탈각 압력: 2,500 ~ 3,000 bar", "살균 압력: 5,000 ~ 6,000 bar", "수율 향상: 95% 이상"],
+          en: ["Shucking: 2,500 ~ 3,000 bar", "Kill Pressure: 5,000 ~ 6,000 bar", "Yield: 95%+ Intact"]
+        },
+        prods: [
+          { img: "assets/products/sea_oyster.jpg", name: { ko: "HPP 청정 생굴", en: "Clean Shucked Oysters" }, desc: { ko: "비브리오균 제어 · 자동 개각", en: "Vibrio controlled · Clean shell release" } },
+          { img: "assets/products/sea_lobster.jpg", name: { ko: "랍스터 생물 통살", en: "Raw Lobster Meat" }, desc: { ko: "껍질만 쏙 분리되는 마법", en: "Intact claws and tail meat release" } },
+          { img: "assets/products/sea_crab.jpg", name: { ko: "붉은대게 순살", en: "Red Crab Pure Meat" }, desc: { ko: "인건비 80% 절감 혁신 공정", en: "80% labor cost savings" } },
+          { img: "assets/products/sea_sashimi.jpg", name: { ko: "연어·참치 회 킷트", en: "Sashimi Salmon &amp; Tuna" }, desc: { ko: "비린내 없는 신선 냉장 회", en: "Fresh chilled sashimi grade safety" } }
+        ]
+      }
+    };
+
+    // Equipment Specs Data
+    const MODEL_SPECS = [
+      {
+        name: "Mini HiPPo (0.3 ℓ)",
+        desc: {
+          ko: "소용량 시료 테스트 및 대학·식품 연구소 전용 컴팩트 초고압 살균기",
+          en: "Compact R&D ultra-high pressure system for universities & pilot testing"
+        },
+        cap: "0.3 ℓ",
+        dim: "Ø 50 × 150 ㎜",
+        cyc: { ko: "7 ~ 8 회/h (샘플 테스트)", en: "7 ~ 8 cycles/h (Sample trials)" },
+        wt: "1.2 ton"
+      },
+      {
+        name: "Small HiPPo (20 ~ 50 ℓ)",
+        desc: {
+          ko: "스타트업 및 지역 중소 식품 가공 공장에 최적화된 실속형 엔트리 모델",
+          en: "Optimized entry-level commercial system for startups & regional processors"
+        },
+        cap: "20 ~ 50 ℓ",
+        dim: "Ø 160~200 × 1,000~1,600 ㎜",
+        cyc: { ko: "7 ~ 8 회/h (12~30 ℓ/Cycle)", en: "7 ~ 8 cycles/h (12~30 L/Cycle)" },
+        wt: "8.0 ~ 15.0 ton"
+      },
+      {
+        name: "Medium HiPPo (100 ~ 150 ℓ)",
+        desc: {
+          ko: "중대형 식품 제조사의 연속 양산 라인을 책임지는 핵심 주력 설비",
+          en: "Robust industrial workhorse for continuous mass production at F&B lines"
+        },
+        cap: "100 ~ 150 ℓ",
+        dim: "Ø 250 × 2,040~3,060 ㎜",
+        cyc: { ko: "7 ~ 8 회/h (60~90 ℓ/Cycle)", en: "7 ~ 8 cycles/h (60~90 L/Cycle)" },
+        wt: "25.0 ~ 45.0 ton"
+      },
+      {
+        name: "Large HiPPo (350 ~ 550 ℓ)",
+        desc: {
+          ko: "글로벌 대기업 및 대규모 HPP 외주 전문 톨링 플랜트용 플래그십 시스템",
+          en: "High-throughput flagship plant for global corporations & tolling facilities"
+        },
+        cap: "350 ~ 550 ℓ",
+        dim: "Ø 380~480 × 3,050~3,080 ㎜",
+        cyc: { ko: "7 ~ 10 회/h (210~330 ℓ/Cycle)", en: "7 ~ 10 cycles/h (210~330 L/Cycle)" },
+        wt: "85.0 ~ 120.0 ton"
+      }
+    ];
+
+    // Navigation Switcher
+    function switchNav(targetId) {
+      document.querySelectorAll('.nav-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.target === targetId);
+      });
+      document.querySelectorAll('.panel').forEach(p => {
+        p.classList.remove('active');
+      });
+      const targetPanel = document.getElementById('panel-' + targetId);
+      if (targetPanel) {
+        targetPanel.classList.add('active');
+      }
+
+      // Update Top Header Display
+      const pageNames = {
+        home: { ko: "HiPPo HPP 솔루션", en: "HiPPo HPP Solution", tag: "ILSHINAUTOCLAVE" },
+        tech: { ko: "초고압 기술 원리 &amp; 공정", en: "Technology &amp; Principles", tag: "ILSHINAUTOCLAVE" },
+        app: { ko: "5대 식품 적용 분야", en: "Food Applications", tag: "ILSHINAUTOCLAVE" },
+        equip: { ko: "초고압 장비 라인업", en: "Equipment Lineup", tag: "ILSHINAUTOCLAVE" },
+        video: { ko: "초고압 영상관", en: "Cinema Video Theater", tag: "ILSHINAUTOCLAVE" },
+        contact: { ko: "상담 문의", en: "Contact", tag: "ILSHINAUTOCLAVE" }
+      };
+      document.getElementById('pageTitleDisplay').innerHTML = pageNames[targetId][currentLang];
+      const brandTag = document.querySelector('.top-bar-left .top-bar-brand-tag');
+      if (brandTag) {
+        brandTag.textContent = pageNames[targetId].tag || 'ILSHINAUTOCLAVE';
+      }
+
+      // Manage Home Background Video Playback
+      const homePlayer = document.getElementById('homeBgVideo');
+      if (homePlayer) {
+        if (targetId === 'home') {
+          homePlayer.play().catch(() => {});
+        } else {
+          homePlayer.pause();
+        }
+      }
+
+      // Manage Cinema Video Playback to prevent background bandwidth consumption
+      const cinemaPlayer = document.getElementById('cinemaVideoPlayer');
+      if (cinemaPlayer) {
+        if (targetId === 'video') {
+          cinemaPlayer.play().catch(() => {});
+        } else {
+          cinemaPlayer.pause();
+        }
+      }
+
+      resetIdleTimer();
+    }
+
+    // Tech Segment Switcher
+    function switchTechSegment(subId, btn) {
+      document.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.tech-subview').forEach(v => v.classList.remove('active'));
+      const target = document.getElementById('subview-' + subId);
+      if (target) target.classList.add('active');
+      resetIdleTimer();
+    }
+
+    // Simulator Interactive Logic (Requirement 1: Needle angle dynamic rotation)
+    
+    // Requirement 5: White Vector SVGs for Bottled Beverage, Shellfish Shucking, Meat, Microorganism
+    const SIM_TARGET_SVGS = {
+      bottle: `
+        <svg width="76" height="76" viewBox="0 0 100 100" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Bottle cap & neck -->
+          <rect x="42" y="10" width="16" height="8" rx="2" fill="#FFFFFF"/>
+          <path d="M 46 18 L 46 26 C 46 32 34 38 34 46 L 34 82 C 34 87 38 90 43 90 L 57 90 C 62 90 66 87 66 82 L 66 46 C 66 38 54 32 54 26 L 54 18 Z"/>
+          <!-- Beverage wave line -->
+          <path d="M 38 58 Q 50 52 62 58" stroke-width="2.5"/>
+          <!-- Beverage droplet -->
+          <path d="M 50 66 C 47 70 45 73 45 76 C 45 79 47.2 81 50 81 C 52.8 81 55 79 55 76 C 55 73 53 70 50 66 Z" fill="#FFFFFF" stroke="none"/>
+          <circle cx="76" cy="36" r="3" fill="#FFFFFF" stroke="none"/>
+        </svg>
+      `,
+      shellfish: `
+        <svg width="76" height="76" viewBox="0 0 100 100" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Top Shell opening -->
+          <path d="M 22 48 C 22 28 35 16 50 16 C 65 16 78 28 78 48 C 70 40 60 38 50 38 C 40 38 30 40 22 48 Z"/>
+          <line x1="50" y1="16" x2="50" y2="36" stroke-width="2.5"/>
+          <line x1="36" y1="22" x2="42" y2="38" stroke-width="2.5"/>
+          <line x1="64" y1="22" x2="58" y2="38" stroke-width="2.5"/>
+          <!-- Bottom Shell -->
+          <path d="M 20 52 C 20 74 34 86 50 86 C 66 86 80 74 80 52 C 70 58 60 60 50 60 C 40 60 30 58 20 52 Z"/>
+          <!-- Intact Shucked Meat in Center -->
+          <ellipse cx="50" cy="50" rx="14" ry="9" fill="#FFFFFF" stroke="none"/>
+          <circle cx="48" cy="49" r="3" fill="#04120A" stroke="none"/>
+        </svg>
+      `,
+      meat: `
+        <svg width="76" height="76" viewBox="0 0 100 100" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Meat steak / cut outline -->
+          <path d="M 26 38 C 18 50 20 72 36 82 C 52 92 78 84 84 66 C 88 52 82 30 66 22 C 52 14 34 24 26 38 Z"/>
+          <!-- Marrow bone -->
+          <circle cx="44" cy="46" r="9" fill="#FFFFFF" stroke="none"/>
+          <circle cx="44" cy="46" r="4.5" fill="#04120A" stroke="none"/>
+          <!-- Marbling tenderness lines -->
+          <path d="M 58 36 Q 68 44 72 56" stroke-width="2.5"/>
+          <path d="M 40 68 Q 54 74 66 70" stroke-width="2.5"/>
+        </svg>
+      `,
+      microbe: `
+        <svg width="76" height="76" viewBox="0 0 100 100" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Inactivated bacterium capsule -->
+          <rect x="28" y="32" width="44" height="36" rx="18" stroke-dasharray="6 3"/>
+          <path d="M 50 14 L 50 24 M 50 14 L 46 18 M 50 14 L 54 18"/>
+          <path d="M 50 86 L 50 76 M 50 86 L 46 82 M 50 86 L 54 82"/>
+          <path d="M 14 50 L 24 50 M 14 50 L 18 46 M 14 50 L 18 54"/>
+          <path d="M 86 50 L 76 50 M 86 50 L 82 46 M 86 50 L 82 54"/>
+          <circle cx="42" cy="46" r="4" fill="#FFFFFF" stroke="none"/>
+          <circle cx="58" cy="54" r="3.5" fill="#FFFFFF" stroke="none"/>
+          <path d="M 40 54 L 60 46" stroke-width="2.5"/>
+        </svg>
+      `
+    };
+
+    function updateSimulator(val) {
+      const num = parseInt(val);
+      const en = currentLang === 'en';
+      const T = (ko, e) => en ? e : ko;
+      // 구간: 앱 적용분야 데이터와 동일 기준 (탈각 2,500~3,000 / 음료 4,000~6,000 / HMR·과채·육가공 5,000~6,000)
+      const zone = num < 2500 ? 0 : num < 4000 ? 1 : num < 5000 ? 2 : num < 5800 ? 3 : 4;
+      const zoneLabel = [
+        T('가압 준비 구간', 'Pre-pressurization'),
+        T('패각 탈각 영역', 'Shucking Range'),
+        T('음료 비열 살균 영역', 'Beverage Cold Pasteurization'),
+        T('초고압 살균 영역', 'Ultra-High Pressure Range'),
+        T('최대 처리 압력', 'Maximum Working Pressure')
+      ][zone];
+      document.getElementById('gaugeDisplay').textContent = `${num.toLocaleString()} bar`;
+      document.getElementById('gaugeMpaDisplay').textContent = `${Math.round(num/10)} MPa (${zoneLabel})`;
+
+      const ZONES = [
+        { icon: 'microbe', color: '#FFA726',
+          badge: T('[가압 준비 : 세포막 변형이 시작되는 저압 구간]', '[Low pressure : Cell membranes begin to deform]'),
+          kill: T('초기 억제 단계', 'Early Inhibition'),
+          killDesc: T('살균 효과는 4,000 bar 이상에서 본격화됩니다', 'Effective inactivation starts above 4,000 bar'),
+          cat: T('본격 처리 전 가압 단계', 'Ramp-up Phase'),
+          catDesc: T('슬라이더를 올려 식품별 처리 압력을 확인해 보세요', 'Slide up to see each food\'s target pressure') },
+        { icon: 'shellfish', color: '#FFA726',
+          badge: T('[적용 대상 : 굴·조개·갑각류 무손상 자동 탈각]', '[Target : Intact automated shellfish shucking]'),
+          kill: T('패각 근육 분리', 'Adductor Muscle Release'),
+          killDesc: T('칼 없이 껍데기가 열리고 살은 원형 그대로', 'Shells open without knives, meat stays intact'),
+          cat: T('굴 · 조개 · 랍스터 · 대게', 'Oyster · Clam · Lobster · Crab'),
+          catDesc: T('권장 탈각 압력 2,500 ~ 3,000 bar · 수율 향상', 'Shucking at 2,500 ~ 3,000 bar · Higher yield') },
+        { icon: 'bottle', color: '#74E39A',
+          badge: T('[적용 대상 : 콜드브루 · 착즙주스 비열 살균]', '[Target : Cold brew & juice cold pasteurization]'),
+          kill: T('부패균 · 효모 제어', 'Spoilage Microbes Controlled'),
+          killDesc: T('가열 없이 냉장 유통기한 연장', 'Extended chilled shelf life without heat'),
+          cat: T('콜드브루 · NFC 주스 · 식물성 음료', 'Cold Brew · NFC Juice · Plant Milk'),
+          catDesc: T('권장 압력 4,000 ~ 6,000 bar · 처리 2~3분', '4,000 ~ 6,000 bar · 2~3 min hold') },
+        { icon: 'meat', color: 'var(--green-neon)',
+          badge: T('[적용 대상 : HMR · 과채 퓌레 · 효소 불활성]', '[Target : HMR, purees & enzyme inactivation]'),
+          kill: T('병원성 미생물 집중 제어', 'Pathogen Inactivation'),
+          killDesc: T('갈변 효소(PPO) 제어 · 신선 색감 유지', 'PPO browning enzyme controlled · Fresh color kept'),
+          cat: T('HMR · 반찬 · 과카몰리 · 퓌레', 'HMR · Deli · Guacamole · Purees'),
+          catDesc: T('권장 압력 5,000 ~ 6,000 bar · 처리 3분 내외', '5,000 ~ 6,000 bar · ~3 min hold') },
+        { icon: 'microbe', color: 'var(--green-neon)',
+          badge: T('[적용 대상 : 병원성 미생물 99.999% 저감 (5-log)]', '[Target : 99.999% pathogen reduction (5-log)]'),
+          kill: T('99.999% 저감 (5-log)', '99.999% Reduction (5-log)'),
+          killDesc: T('리스테리아 · 살모넬라 · 대장균 등 병원성 미생물', 'Listeria, Salmonella, E. coli and other pathogens'),
+          cat: T('육가공 · 델리미트 · 전 식품군', 'Deli Meats & All Foods'),
+          catDesc: T('냉장 유통기한 최대 6배 연장 · 클린 라벨', 'Up to 6X chilled shelf life · Clean label') }
+      ];
+      const z = ZONES[zone];
+      const targetIconEl = document.getElementById('simTargetIcon');
+      const targetBadgeEl = document.getElementById('simTargetBadge');
+      if (targetIconEl) targetIconEl.innerHTML = SIM_TARGET_SVGS[z.icon];
+      if (targetBadgeEl) targetBadgeEl.textContent = z.badge;
+      const killRate = document.getElementById('simKillRate');
+      killRate.textContent = z.kill;
+      killRate.style.color = z.color;
+      document.getElementById('simKillDesc').textContent = z.killDesc;
+      document.getElementById('simCategory').textContent = z.cat;
+      document.getElementById('simCategoryDesc').textContent = z.catDesc;
+      syncPresetHighlight(num);
+      resetIdleTimer();
+    }
+
+    function setPresetPressure(val) {
+      document.getElementById('pressureSlider').value = val;
+      updateSimulator(val);
+    }
+    function syncPresetHighlight(num) {
+      document.querySelectorAll('.preset-btn').forEach(b => {
+        const m = (b.getAttribute('onclick') || '').match(/\((\d+)\)/);
+        b.classList.toggle('active', !!m && parseInt(m[1]) === num);
+      });
+    }
+
+    // Application Category Switcher
+    let activeCategoryKey = 'coldbrew';
+    function switchAppCategory(catKey, btn) {
+      activeCategoryKey = catKey;
+      document.querySelectorAll('.app-tab-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderAppContent();
+      resetIdleTimer();
+    }
+
+    // Requirement 3: Render Real Food Photos inside 4 Product Cards
+    function renderAppContent() {
+      const data = APP_DATA[activeCategoryKey];
+      if (!data) return;
+
+      document.getElementById('appHeroTitle').innerHTML = data.title[currentLang];
+      document.getElementById('appHeroLead').innerHTML = data.lead[currentLang];
+
+      const chkContainer = document.getElementById('appCheckList');
+      chkContainer.innerHTML = '';
+      data.checks[currentLang].forEach(chk => {
+        const item = document.createElement('div');
+        item.className = 'app-check-item';
+        item.innerHTML = `<div class="chk">✓</div><span>${chk}</span>`;
+        chkContainer.appendChild(item);
+      });
+
+      const pillContainer = document.getElementById('appSpecPills');
+      pillContainer.innerHTML = '';
+      data.pills[currentLang].forEach(pl => {
+        const tile = document.createElement('div');
+        tile.className = 'app-spec-pill';
+        const i = pl.indexOf(':');
+        tile.innerHTML = i > -1
+          ? `<small>${pl.slice(0, i).trim()}</small><b>${pl.slice(i + 1).trim()}</b>`
+          : `<b>${pl}</b>`;
+        pillContainer.appendChild(tile);
+      });
+
+      // Populate 4 Left Cards with Non-Cropped REAL PHOTOS (No zoom modal as requested)
+      const prodsGrid = document.getElementById('appProdsGrid');
+      prodsGrid.innerHTML = '';
+      data.prods.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'kiosk-prod-card-v3';
+        card.innerHTML = `
+          <div class="prod-photo-thumb">
+            <img src="${p.img}" alt="${p.name[currentLang]}" loading="lazy" decoding="async">
+          </div>
+          <div class="prod-info-block">
+            <div class="prod-title-lg">${p.name[currentLang]}</div>
+            <div class="prod-desc-sm">${p.desc[currentLang]}</div>
+          </div>
+        `;
+        prodsGrid.appendChild(card);
+      });
+    }
+
+    // Equipment Model Selector
+    function selectModel(idx, card) {
+      currentModelIdx = idx;
+      document.querySelectorAll('.kiosk-equip-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      renderModelHUD();
+      resetIdleTimer();
+    }
+
+    function renderModelHUD() {
+      const spec = MODEL_SPECS[currentModelIdx];
+      if (!spec) return;
+      // 카드에 이미 용량·설명이 있으므로 제목은 모델명 + "주요 제원"만 표시
+      document.getElementById('hudModelName').textContent =
+        spec.name.replace(/\s*\(.*\)\s*$/, '') + (currentLang === 'en' ? ' Key Specs' : ' 주요 제원');
+      document.getElementById('hudCapVal').textContent = spec.cap;
+      document.getElementById('hudDimVal').textContent = spec.dim;
+      document.getElementById('hudCycVal').textContent = spec.cyc[currentLang];
+      document.getElementById('hudWtVal').textContent = spec.wt;
+    }
+
+    // Video Switcher
+    function switchVideo(key, btn) {
+      document.querySelectorAll('.video-mode-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const player = document.getElementById('cinemaVideoPlayer');
+      const srcEl = document.getElementById('cinemaVideoSrc');
+      player.pause();
+      srcEl.src = (key === 'local_main') ? 'assets/videos/hpp_main_visual_R2.mp4' : 'assets/videos/hpp_youtube_video.mp4';
+      player.loop = true;
+      player.load();
+      player.play().catch(() => {});
+      resetIdleTimer();
+    }
+
+    // Bilingual Process Steps Data
+    const PROCESS_STEPS = {
+      step1: {
+        src: 'assets/process/step1_insert.jpg',
+        title: { ko: '', en: '' } /* 카드 제목(step1_title)을 그대로 사용 */,
+        desc: { 
+          ko: '유연성 용기에 최종 밀봉 포장된 제품을 HPP 전용 내압 바스켓에 정렬 적재합니다.',
+          en: 'Align and load vacuum-sealed flexible food containers into pressure-resistant baskets.'
+        }
+      },
+      step2: {
+        src: 'assets/process/step2_insert.jpg',
+        title: { ko: '', en: '' } /* 카드 제목(step2_title)을 그대로 사용 */,
+        desc: { 
+          ko: '적재 완료된 바스켓이 자동 컨베이어를 통해 초고압 실린더 내부로 장착됩니다.',
+          en: 'Transfer loaded baskets into high-pressure cylinder via automatic conveyor and lock both plugs.'
+        }
+      },
+      step3: {
+        src: 'assets/process/step3_fill_pressurize.jpg',
+        title: { ko: '', en: '' } /* 카드 제목(step3_title)을 그대로 사용 */,
+        desc: { 
+          ko: '용기 내부로 상온 정제수를 주입하여 잔여 공기를 완전 배출하고 등압 가압을 준비합니다.',
+          en: 'Fill chamber with ambient purified water to eliminate trapped air and prepare isostatic pressurization.'
+        }
+      },
+      step4: {
+        src: 'assets/process/step4_hold_sterilize.jpg',
+        title: { ko: '', en: '' } /* 카드 제목(step4_title)을 그대로 사용 */,
+        desc: { 
+          ko: '초고압 증압기로 최고 6,000 bar(600 MPa) 수압을 균일 가압하여 비열 상태에서 유해균을 물리적으로 사멸합니다.',
+          en: 'Evenly apply 6,000 bar (600 MPa) isostatic water pressure to physically destroy pathogen cell membranes without heat.'
+        }
+      },
+      step5: {
+        src: 'assets/process/step5_discharge.jpg',
+        title: { ko: '', en: '' } /* 카드 제목(step5_title)을 그대로 사용 */,
+        desc: { 
+          ko: '압력을 안전하게 대기압으로 해제한 후 비열 살균 완료된 완제품 바스켓을 자동으로 배출합니다.',
+          en: 'Safely decompress to atmospheric pressure and automatically discharge pasteurized baskets to the packaging line.'
+        }
+      }
+    };
+
+    function openStepModal(stepKey) {
+      const s = PROCESS_STEPS[stepKey];
+      if (!s) return;
+      const tmp = document.createElement('div');
+      tmp.innerHTML = (I18N[currentLang] && I18N[currentLang][stepKey + '_title']) || '';
+      openImgModal(s.src, tmp.textContent, s.desc[currentLang]);
+    }
+
+    // Modal Handlers
+    function openImgModal(src, title, desc) {
+      document.getElementById('modalImg').src = src;
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalDesc').textContent = desc;
+      document.getElementById('imgModal').classList.add('show');
+      resetIdleTimer();
+    }
+    function closeImgModal() {
+      document.getElementById('imgModal').classList.remove('show');
+    }
+
+    function updateSpecTableUnits() {
+      document.querySelectorAll('#fullSpecTableBody tr').forEach(tr => {
+        const tdCycle = tr.children[4];
+        if (tdCycle) {
+          if (currentLang === 'en') {
+            tdCycle.textContent = tdCycle.textContent.replace('회/h', 'cycles/h');
+          } else {
+            tdCycle.textContent = tdCycle.textContent.replace('cycles/h', '회/h');
+          }
+        }
+      });
+    }
+
+    function openSpecModal() {
+      updateSpecTableUnits();
+      document.getElementById('specTableModal').classList.add('show');
+      resetIdleTimer();
+    }
+    function closeSpecModal() {
+      document.getElementById('specTableModal').classList.remove('show');
+    }
+
+    
+    // Enhanced Location Maps (Offline-first + Exact GPS for Google Maps)
+    let currentActiveLocKey = 'hq';
+    let currentMapMode = 'offline'; // 'offline' or 'online'
+
+    const LOCATION_MAPS = {
+      hq: {
+        name: { ko: '본사 · 제1공장', en: 'HQ &amp; Plant 1' },
+        road: { ko: '대전광역시 유성구 테크노2로 255', en: '255 Techno 2-ro, Yuseong-gu, Daejeon' },
+        jibun: { ko: '대전광역시 유성구 탑립동 835', en: '835 Tamnip-dong, Yuseong-gu, Daejeon' },
+        role: { 
+          ko: 'HPP 초고압 살균 양산 장비 제조 &amp; 본사 사옥', 
+          en: 'Commercial HPP Mass Production &amp; Headquarters' 
+        },
+        specs: {
+          ko: 'HPP 20L ~ 550L 양산 조립, 초고압 챔버 정밀 검사, 본사 경영지원',
+          en: 'Assembly of HPP 20L~550L systems, isostatic vessel inspection, HQ administration'
+        },
+        transport: {
+          ko: '경부·호남고속도로 북대전IC에서 차량 5분 (대덕테크노밸리 중심부)',
+          en: '5 min from Bukdaejeon IC (Center of Daedeok Techno Valley)'
+        },
+        parking: {
+          ko: '사옥 내 전용 주차장 완비 (방문객 및 화물차량 주차 가능)',
+          en: 'Dedicated on-site parking for visitors & transport'
+        },
+        coords: '36.4197° N, 127.4115° E',
+        url: 'https://maps.google.com/maps?q=36.419664,127.411491&t=&z=17&ie=UTF8&iwloc=&output=embed'
+      },
+      p2: {
+        name: { ko: '제2공장', en: 'Plant 2' },
+        road: { ko: '대전광역시 유성구 갑천로 361-23, 25, 27', en: '361-23 Gapcheon-ro, Yuseong-gu, Daejeon' },
+        jibun: { ko: '대전광역시 유성구 탑립동 933-7', en: '933-7 Tamnip-dong, Yuseong-gu, Daejeon' },
+        role: { 
+          ko: '초고압 용기 정밀 가공 &amp; 대형 프레임 제작 플랜트', 
+          en: 'Heavy Pressure Vessel Precision Machining Plant' 
+        },
+        specs: {
+          ko: '원통 단조 실린더 정밀 보링 가공, 와이어 와인딩 프레임 대형 용접 가공',
+          en: 'Forged high-pressure cylinder machining, wire-wound heavy frame fabrication'
+        },
+        transport: {
+          ko: '경부고속도로 신탄진IC에서 차량 8분 (대전 제3·4산업단지)',
+          en: '8 min from Sintanjin IC (Daejeon 3·4 Industrial Complex)'
+        },
+        parking: {
+          ko: '제2공장 부지 내 대형 화물 및 방문객 주차장',
+          en: 'Spacious on-site parking for heavy trucks & visitors'
+        },
+        coords: '36.4128° N, 127.4148° E',
+        url: 'https://maps.google.com/maps?q=36.412754,127.414825&t=&z=17&ie=UTF8&iwloc=&output=embed'
+      },
+      p3: {
+        name: { ko: '제3공장 · 기술연구소', en: 'Plant 3 &amp; R&amp;D Center' },
+        road: { ko: '대전광역시 유성구 국제과학로 12', en: '12 Gukjekwahak-ro, Yuseong-gu, Daejeon' },
+        jibun: { ko: '대전광역시 유성구 신동 657-5', en: '657-5 Sin-dong, Yuseong-gu, Daejeon' },
+        role: { 
+          ko: '차세대 HPP 초고압 R&amp;D 연구소 &amp; 고객사 실증 테스트베드', 
+          en: 'Next-Gen HPP R&amp;D Center &amp; 6,000 bar Pilot Test Bed' 
+        },
+        specs: {
+          ko: '6,000 bar 시제품 실증 테스트, 살균 레시피 연구, 미생물 5-log 저감 검증',
+          en: '6,000 bar pilot trial, shelf-life recipe R&D, 5-log pathogen validation'
+        },
+        transport: {
+          ko: '세종-대전로 신동IC 진출 후 500m (차량 1분) / 세종시계 5분',
+          en: '500m from Sindong IC via Gukjekwahak-ro (1 min drive) / 5 min from Sejong'
+        },
+        parking: {
+          ko: '연구소 부지 내 전용 주차장 완비 (샘플 이송 차량 및 방문객 무료 주차)',
+          en: 'Free dedicated parking for sample transport & visitors'
+        },
+        coords: '36.4754° N, 127.3679° E',
+        url: 'https://maps.google.com/maps?q=36.475429,127.367854&t=&z=17&ie=UTF8&iwloc=&output=embed'
+      }
+    };
+
+    // 영어 모드 약도 라벨 (긴 것부터 치환)
+    const MAP_LABEL_EN = {
+      '🏢 본사 · 제1공장': '🏢 HQ &amp; Plant 1',
+      '🏭 제2공장': '🏭 Plant 2',
+      '🔬 제3공장 · 기술연구소': '🔬 Plant 3 &amp; R&amp;D',
+      '국제과학비즈니스벨트 신동지구': 'Sindong Science Belt',
+      'IBS 중이온가속기연구소': 'IBS Rare Isotope Institute',
+      '건설생활환경시험연구원': 'KCL Testing Institute',
+      '대덕테크노밸리': 'Daedeok Techno Valley',
+      '테크노중앙로': 'Techno Jungang-ro',
+      '국제과학2로': 'Gukjegwahak 2-ro',
+      '국제과학3로': 'Gukjegwahak 3-ro',
+      '금남구즉로': 'Geumnam-Gujeuk-ro',
+      '국제과학로': 'Gukjegwahak-ro',
+      '테크노10로': 'Techno 10-ro',
+      '테크노11로': 'Techno 11-ro',
+      '탑립삼거리': 'Tamnip Jct.',
+      '하이플럭스': 'Hiflux',
+      '테크노2로': 'Techno 2-ro',
+      '대전세관': 'Daejeon Customs',
+      '배울1로': 'Baeul 1-ro',
+      '갑천로': 'Gapcheon-ro',
+      '신동천': 'Sindongcheon',
+      '갑천': 'Gapcheon',
+      '철도': 'Railway'
+    };
+    // 오프라인 약도 — 카카오맵 실제 도로 배치를 기준으로 단순화해 다시 그림 (2026-11)
+    function mapFrame(id, inner, scaleW, scaleLabel) {
+      return `
+          <svg viewBox="0 0 540 320" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%; overflow:visible;" font-family="Pretendard, 'Malgun Gothic', sans-serif">
+            <defs>
+              <pattern id="grid${id}" width="22" height="22" patternUnits="userSpaceOnUse">
+                <path d="M 22 0 L 0 0 0 22" fill="none" stroke="rgba(116,227,154,0.06)" stroke-width="1"/>
+              </pattern>
+              <radialGradient id="pinGlow${id}" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#74E39A" stop-opacity="0.9"/>
+                <stop offset="100%" stop-color="#74E39A" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <rect x="-40" y="-400" width="620" height="1120" fill="url(#grid${id})" />
+            ${inner}
+            <g transform="translate(505, 36)">
+              <circle cx="0" cy="0" r="15" fill="rgba(4,18,10,0.85)" stroke="rgba(116,227,154,0.4)"/>
+              <polygon points="0,-11 4,4 0,0 -4,4" fill="#74E39A"/>
+              <text x="-4.5" y="-14" fill="#74E39A" font-size="12" font-weight="800">N</text>
+            </g>
+            <g transform="translate(${530 - scaleW - 20}, 296)">
+              <rect x="0" y="0" width="${scaleW + 20}" height="18" rx="4" fill="rgba(4,18,10,0.75)"/>
+              <line x1="10" y1="12" x2="${scaleW + 10}" y2="12" stroke="#B7E4C7" stroke-width="2"/>
+              <line x1="10" y1="8" x2="10" y2="15" stroke="#B7E4C7" stroke-width="2"/>
+              <line x1="${scaleW + 10}" y1="8" x2="${scaleW + 10}" y2="15" stroke="#B7E4C7" stroke-width="2"/>
+              <text x="${scaleW / 2 + 10}" y="9" text-anchor="middle" fill="#FFFFFF" font-size="9.5" font-weight="700">${scaleLabel}</text>
+            </g>
+          </svg>`;
+    }
+    // 도로: 큰길(main)은 두껍게 + 이름, 작은길(minor)은 얇게
+    const mRoad = (d, w = 13) => `<path d="${d}" fill="none" stroke="#2F7A55" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="${d}" fill="none" stroke="#6FCF97" stroke-width="1.4" stroke-dasharray="7,7" stroke-linecap="round" opacity="0.55"/>`;
+    const nRoad = (d, w = 7) => `<path d="${d}" fill="none" stroke="#24563D" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+    const rLabel = (x, y, t, rot = 0, size = 14) => `<text x="${x}" y="${y}" fill="#FFFFFF" font-size="${size}" font-weight="800" text-anchor="middle" transform="rotate(${rot} ${x},${y})" paint-order="stroke" stroke="rgba(4,18,10,0.85)" stroke-width="4">${t}</text>`;
+    const mark = (x, y, t, anchor = 'start') => `<text x="${x}" y="${y}" fill="rgba(255,255,255,0.55)" font-size="12.5" font-weight="600" text-anchor="${anchor}">${t}</text>`;
+    const water = (d, lx, ly, t, rot = 0) => `<path d="${d}" fill="rgba(70,150,200,0.28)" stroke="rgba(120,190,230,0.35)" stroke-width="1"/>
+            <text x="${lx}" y="${ly}" fill="rgba(160,215,245,0.85)" font-size="13" font-weight="700" text-anchor="middle" transform="rotate(${rot} ${lx},${ly})">${t}</text>`;
+    const site = (id, rx, ry, rw, rh, px, py, bx, by, bw, label) => `
+            <rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" rx="4" fill="rgba(116,227,154,0.22)" stroke="#74E39A" stroke-width="2"/>
+            <line x1="${px}" y1="${py}" x2="${bx + bw / 2}" y2="${by + (by < py ? 40 : 0)}" stroke="#74E39A" stroke-width="2" stroke-dasharray="3,3"/>
+            <rect x="${bx}" y="${by}" width="${bw}" height="40" rx="10" fill="rgba(4,24,13,0.92)" stroke="#74E39A" stroke-width="2.5"/>
+            <text x="${bx + bw / 2}" y="${by + 26}" fill="#74E39A" font-size="16" font-weight="800" text-anchor="middle">${label}</text>
+            <circle cx="${px}" cy="${py}" r="30" fill="url(#pinGlow${id})"/>
+            <circle cx="${px}" cy="${py}" r="12" fill="none" stroke="#74E39A" stroke-width="2"/>
+            <circle cx="${px}" cy="${py}" r="6" fill="#EF5350" stroke="#FFFFFF" stroke-width="2"/>`;
+
+    function renderOfflineMapSVG(key) {
+      if (key === 'hq') {
+        // 본사·제1공장: 테크노2로 255 — 테크노2로가 꺾이는 지점, 갑천로·갑천 서쪽
+        return mapFrame('1', `
+            ${water('M 120,-400 L 600,-400 L 600,265 L 540,205 C 485,165 430,105 360,55 C 320,28 285,10 250,0 C 200,-25 160,-200 120,-400 Z', 468, 78, '갑천', 38)}
+            ${mRoad('M 40,-400 C 70,-150 95,-15 140,0 C 250,40 345,100 405,160 C 445,200 480,255 512,320 L 600,520')}
+            ${rLabel(262, 58, '갑천로', 30)}
+            ${mRoad('M -40,84 L 292,182 L 292,720')}
+            ${rLabel(62, 104, '테크노2로', 16)}
+            ${nRoad('M -40,286 L 600,286')}
+            ${rLabel(212, 280, '테크노10로', 0, 12.5)}
+            ${nRoad('M 128,134 L 128,720')}
+            ${rLabel(116, 212, '테크노중앙로', -90, 12)}
+            ${mark(150, 172, '대전세관')}
+            ${mark(310, 248, '건설생활환경시험연구원')}
+            ${mark(16, 30, '대덕테크노밸리')}
+            ${site('1', 306, 178, 50, 38, 331, 197, 136, 214, 152, '🏢 본사 · 제1공장')}
+        `, 40, '100 m');
+      } else if (key === 'p2') {
+        // 제2공장: 갑천로 361-23 — 갑천로 동쪽, 탑립삼거리 북쪽 (하이플럭스 동일 부지)
+        return mapFrame('2', `
+            ${water('M 525,-400 L 600,-400 L 600,720 L 360,720 C 390,560 405,420 418,320 C 440,250 470,140 498,0 C 508,-120 516,-260 525,-400 Z', 492, 210, '갑천', -78)}
+            <path d="M 398,-400 L 398,720" stroke="rgba(255,255,255,0.35)" stroke-width="3" stroke-dasharray="10,6"/>
+            ${mark(406, 66, '철도')}
+            ${mRoad('M 340,-400 L 340,720')}
+            ${rLabel(326, 36, '갑천로', -90)}
+            ${mRoad('M -40,158 L 340,292 L 600,341')}
+            ${rLabel(120, 205, '배울1로', 19)}
+            ${nRoad('M 182,-400 L 182,236')}
+            ${rLabel(170, 168, '테크노2로', -90, 12.5)}
+            ${nRoad('M -40,86 L 340,86')}
+            ${rLabel(80, 80, '테크노11로', 0, 12.5)}
+            <circle cx="340" cy="292" r="14" fill="none" stroke="#E5B842" stroke-width="2.5" stroke-dasharray="4,3"/>
+            <text x="320" y="272" fill="#E5B842" font-size="13.5" font-weight="800" text-anchor="end">탑립삼거리</text>
+            ${mark(352, 222, '하이플럭스')}
+            ${site('2', 352, 160, 36, 46, 370, 183, 196, 116, 132, '🏭 제2공장')}
+        `, 62, '100 m');
+      } else {
+        // 제3공장·기술연구소: 국제과학로 12 — 신동천·금남구즉로 남쪽, 국제과학로 서쪽
+        return mapFrame('3', `
+            ${water('M -40,124 L 0,118 C 150,95 250,55 300,48 L 600,43 L 600,71 L 300,76 C 250,82 150,123 0,146 L -40,152 Z', 110, 120, '신동천', -12)}
+            ${mRoad('M -40,172 L 0,166 C 150,142 250,97 300,93 L 600,87')}
+            ${rLabel(470, 82, '금남구즉로', 0, 13)}
+            ${mRoad('M 395,-400 L 395,720')}
+            ${rLabel(381, 372, '국제과학로', -90)}
+            ${nRoad('M -40,238 L 600,238')}
+            ${rLabel(70, 232, '국제과학2로', 0, 12.5)}
+            ${rLabel(470, 232, '국제과학3로', 0, 12.5)}
+            ${mark(382, 24, 'IBS 중이온가속기연구소', 'end')}
+            ${mark(16, 300, '국제과학비즈니스벨트 신동지구')}
+            ${site('3', 292, 106, 88, 62, 336, 137, 70, 176, 196, '🔬 제3공장 · 기술연구소')}
+        `, 54, '100 m');
+      }
+    }
+
+    function nwNums(t) { return t.replace(/(\S*\d\S*)/g, '<span class="nw">$1</span>'); }
+    function renderOfflineMapData(key) {
+      const loc = LOCATION_MAPS[key];
+      if (!loc) return;
+      const isEn = (currentLang === 'en');
+      const html = `
+        <div class="loc-name">${loc.name[currentLang]}</div>
+        <div class="loc-addr-block">
+          <div class="loc-lbl">${isEn ? 'Address' : '주소'}</div>
+          <div class="loc-road">${nwNums(loc.road[currentLang])}</div>
+          <div class="loc-jibun">${isEn ? 'Lot No.' : '지번'} · ${loc.jibun[currentLang].replace(/^대전광역시 유성구 /, '').replace(/, Yuseong-gu, Daejeon/, '')}</div>
+        </div>
+        <div class="loc-addr-block">
+          <div class="loc-lbl">${isEn ? 'Main Line' : '대표 전화'}</div>
+          <div class="loc-road">042-931-6100</div>
+        </div>
+      `;
+      const container = document.getElementById('offlineMapDataCol');
+      if (container) container.innerHTML = html;
+    }
+
+    function setMapMode(mode) {
+      currentMapMode = mode;
+      const btnOff = document.getElementById('btnModeOffline');
+      const btnOn = document.getElementById('btnModeOnline');
+      const viewOff = document.getElementById('offlineMapView');
+      const viewOn = document.getElementById('onlineMapView');
+
+      if (mode === 'offline') {
+        if (btnOff) btnOff.classList.add('active');
+        if (btnOn) btnOn.classList.remove('active');
+        if (viewOff) viewOff.style.display = 'flex';
+        if (viewOn) viewOn.style.display = 'none';
+      } else {
+        if (btnOff) btnOff.classList.remove('active');
+        if (btnOn) btnOn.classList.add('active');
+        if (viewOff) viewOff.style.display = 'none';
+        if (viewOn) viewOn.style.display = 'flex';
+        const ifr = document.getElementById('contactMapIframe');
+        if (ifr && navigator.onLine && ifr.dataset.src && ifr.src !== ifr.dataset.src) ifr.src = ifr.dataset.src;
+        checkOnlineStatus();
+      }
+      resetIdleTimer();
+    }
+
+    function updateLocationDisplay() {
+      const loc = LOCATION_MAPS[currentActiveLocKey];
+      if (!loc) return;
+
+      // Render Offline SVG & Rich Data
+      const svgCol = document.getElementById('offlineMapCanvasCol');
+      if (svgCol) {
+        let svg = renderOfflineMapSVG(currentActiveLocKey);
+        if (currentLang === 'en') Object.entries(MAP_LABEL_EN).sort((a, b) => b[0].length - a[0].length).forEach(([k, v]) => { svg = svg.split('>' + k + '<').join('>' + v + '<'); });
+        svgCol.innerHTML = svg;
+      }
+      renderOfflineMapData(currentActiveLocKey);
+
+      // Update Google Map Iframe
+      const iframe = document.getElementById('contactMapIframe');
+      if (iframe) {
+        iframe.dataset.src = loc.url + '&hl=' + currentLang;
+        if (currentMapMode === 'online' && navigator.onLine) iframe.src = iframe.dataset.src;
+        iframe.title = (currentLang === 'en') ? 'ILSHINAUTOCLAVE Location' : '일신오토클레이브 위치';
+      }
+    }
+
+    function switchLocationMap(locKey, btn) {
+      currentActiveLocKey = locKey;
+      document.querySelectorAll('.address-btn-v6').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      updateLocationDisplay();
+      resetIdleTimer();
+    }
+
+    function openExternalInquiry() {
+      window.open('https://hpp.co.kr/bbs/write.php?bo_table=qa', '_blank');
+      resetIdleTimer();
+    }
+
+    // Language Toggle
+    function setLanguage(lang) {
+      currentLang = lang;
+      document.documentElement.lang = lang;
+      try { localStorage.setItem('kiosk_lang', lang); } catch (e) {}
+
+      document.title = (lang === 'en')
+        ? 'HiPPo HPP — High Pressure Processing Kiosk | ILSHINAUTOCLAVE'
+        : 'HiPPo HPP — 초고압 살균 키오스크 | ㈜일신오토클레이브';
+
+      document.getElementById('btnLangKo').classList.toggle('active', lang === 'ko');
+      document.getElementById('btnLangEn').classList.toggle('active', lang === 'en');
+
+      // Update all [data-i18n]
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (I18N[lang] && I18N[lang][key]) {
+          el.innerHTML = I18N[lang][key];
+        }
+      });
+
+      // Update App Category Pills text while preserving 3D icon
+      const appTabPills = document.querySelectorAll('.app-tab-pill');
+      const appPillTexts = {
+        ko: ['콜드브루 & 음료', 'HMR & 간편식', '가공육 & 육류', '과채가공 & 퓌레', '수산물 & 탈각'],
+        en: ['Cold Brew & Beverage', 'HMR & Ready Meals', 'Meat & Deli', 'Fruit & Puree', 'Seafood & Shucking']
+      };
+      appTabPills.forEach((p, i) => {
+        const span = p.querySelector('span');
+        if (span) span.textContent = appPillTexts[lang][i];
+      });
+
+      // Update dynamic areas
+      renderAppContent();
+      renderModelHUD();
+      updateSimulator(document.getElementById('pressureSlider').value);
+      updateLocationDisplay();
+      
+      // Update Spec Table cycle units
+      updateSpecTableUnits();
+
+      // Re-trigger current nav title
+      const activeNav = document.querySelector('.nav-btn.active');
+      if (activeNav) {
+        switchNav(activeNav.dataset.target);
+      }
+    }
+
+    // Clock
+    function updateClock() {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const s = String(now.getSeconds()).padStart(2, '0');
+      document.getElementById('liveClock').textContent = `${h}:${m}:${s}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Idle Timer (120초 무입력 시 첫 화면으로 초기화 · 영상 시청 중에는 대기)
+    const IDLE_TIMEOUT_MS = 120000;
+    function isCinemaPlaying() {
+      const panel = document.getElementById('panel-video');
+      const player = document.getElementById('cinemaVideoPlayer');
+      return panel && panel.classList.contains('active') && player && !player.paused && !player.ended;
+    }
+    function resetKioskToHome() {
+      // 열린 창 닫기
+      closeImgModal();
+      closeSpecModal();
+      // 기술 소개: 시뮬레이터 탭 + 6,000 bar
+      const simBtn = document.querySelector('.segment-btn[onclick*="\'sim\'"]');
+      if (simBtn) switchTechSegment('sim', simBtn);
+      setPresetPressure(6000);
+      // 적용 분야: 첫 카테고리
+      const firstCat = document.querySelector('.app-tab-pill');
+      if (firstCat) { activeCategoryKey = 'coldbrew'; firstCat.click(); }
+      // 영상관: 첫 영상, 처음 위치
+      const player = document.getElementById('cinemaVideoPlayer');
+      const srcEl = document.getElementById('cinemaVideoSrc');
+      const firstVideoBtn = document.querySelector('.video-mode-pill');
+      if (player && srcEl) {
+        player.pause();
+        if (!srcEl.src.endsWith('hpp_main_visual_R2.mp4')) {
+          srcEl.src = 'assets/videos/hpp_main_visual_R2.mp4';
+          player.load();
+        } else {
+          try { player.currentTime = 0; } catch (e) {}
+        }
+        document.querySelectorAll('.video-mode-pill').forEach(b => b.classList.toggle('active', b === firstVideoBtn));
+      }
+      // 상담 문의: 본사 오프라인 안내도
+      const hqBtn = document.querySelector('[onclick*="switchLocationMap(\'hq\'"]');
+      if (hqBtn) switchLocationMap('hq', hqBtn);
+      setMapMode('offline');
+      setLanguage('ko');
+      switchNav('home');
+    }
+    function resetIdleTimer() {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        if (isCinemaPlaying()) { resetIdleTimer(); return; } // 영상이 끝날 때까지 기다림
+        resetKioskToHome();
+      }, IDLE_TIMEOUT_MS);
+    }
+    ['pointerdown', 'touchstart', 'click', 'input', 'keydown', 'wheel'].forEach(ev =>
+      window.addEventListener(ev, resetIdleTimer, { passive: true }));
+    // 영상관: 선택한 영상을 무한 반복 (loop 속성이 안 먹는 TV·태블릿 브라우저 대비 보조 재시작 포함)
+    (function keepCinemaLooping() {
+      const v = document.getElementById('cinemaVideoPlayer');
+      const videoActive = () => document.getElementById('panel-video').classList.contains('active');
+      v.loop = true;
+      v.addEventListener('ended', () => {
+        resetIdleTimer();
+        if (!videoActive()) return;
+        try { v.currentTime = 0; } catch (e) {}
+        v.play().catch(() => { v.load(); v.play().catch(() => {}); });
+      });
+    })();
+
+    // 홈 배경 영상 반복 재생 보조 — 일부 태블릿·모바일 브라우저에서 loop가 멈추는 문제 대응
+    (function keepHomeBgLooping() {
+      const v = document.getElementById('homeBgVideo');
+      if (!v) return;
+      const homeActive = () => document.getElementById('panel-home').classList.contains('active');
+      const restart = () => {
+        if (!homeActive()) return;
+        try { v.currentTime = 0; } catch (e) {}
+        v.play().catch(() => { v.load(); v.play().catch(() => {}); });
+      };
+      v.addEventListener('ended', restart);
+      // 끝부분에서 멈춰 있거나 재생이 진행되지 않으면 다시 시작
+      let lastT = -1, stuck = 0;
+      setInterval(() => {
+        if (!homeActive() || document.hidden) { stuck = 0; return; }
+        const t = v.currentTime;
+        if (v.ended || v.paused || t === lastT) stuck++; else stuck = 0;
+        lastT = t;
+        if (stuck >= 2) { stuck = 0; if (v.ended || (v.duration && t > v.duration - 1.5)) restart(); else v.play().catch(() => { v.load(); v.play().catch(() => {}); }); }
+      }, 1500);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden && homeActive()) v.play().catch(() => {}); });
+    })();
+    resetIdleTimer();
+
+    // QR Code Generation
+    window.addEventListener('DOMContentLoaded', () => {
+      new QRCode(document.getElementById('qrContainer'), {
+        text: 'https://hpp.co.kr/bbs/write.php?bo_table=qa',
+        width: 512,
+        height: 512,
+        colorDark: '#030E07',
+        colorLight: '#FFFFFF',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+      let savedLang = 'ko';
+      try { savedLang = localStorage.getItem('kiosk_lang') || 'ko'; } catch (e) {}
+      if (savedLang === 'en') {
+        setLanguage('en');
+      } else {
+        renderAppContent();
+        renderModelHUD();
+        updateSimulator(6000);
+        updateLocationDisplay();
+      }
+      fitKioskToScreen();
+      checkOnlineStatus();
+    });
+
+    // Auto Tablet & Screen Scaler (Fits perfectly to Galaxy Tab, iPad, Laptop, or Kiosk)
+    function fitKioskToScreen() {
+      const scaler = document.getElementById('kiosk-scaler');
+      if (!scaler) return;
+      // 화면 비율에 맞춰 캔버스 높이 조정 (16:9 = 1080 ~ 16:10 = 1200)
+      const ratioH = Math.round(1920 * window.innerHeight / window.innerWidth);
+      const kioskH = Math.max(1080, Math.min(1200, ratioH));
+      document.documentElement.style.setProperty('--kiosk-h', kioskH + 'px');
+      const scale = Math.min(window.innerWidth / 1920, window.innerHeight / kioskH);
+      scaler.style.transform = `scale(${scale})`;
+    }
+    window.addEventListener('resize', fitKioskToScreen);
+    window.addEventListener('orientationchange', () => setTimeout(fitKioskToScreen, 150));
+    fitKioskToScreen();
+
+    // Offline Map Fallback Handler
+    function checkOnlineStatus() {
+      const modeFloat = document.querySelector('.map-mode-float');
+      if (modeFloat) modeFloat.style.display = navigator.onLine ? 'flex' : 'none';
+      if (!navigator.onLine && currentMapMode === 'online') setMapMode('offline');
+      const fallback = document.getElementById('mapOfflineFallback');
+      if (fallback) {
+        fallback.style.display = (currentMapMode === 'online' && !navigator.onLine) ? 'flex' : 'none';
+      }
+    }
+    window.addEventListener('online', checkOnlineStatus);
+    window.addEventListener('offline', checkOnlineStatus);
+    checkOnlineStatus();
+  </script>
+</body>
+</html>
