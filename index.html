@@ -2358,7 +2358,7 @@
                     <div class="hud-card-info">
                       <div class="hud-card-title" data-i18n="hud_kill_title">현재 압력의 처리 효과</div>
                       <div class="hud-card-val" id="simKillRate">초기 일반세균 90% 이상 저감</div>
-                      <div class="hud-card-desc" id="simKillDesc">리스테리아 · 살모넬라 · 대장균 등 초기 일반세균</div>
+                      <div class="hud-card-desc" id="simKillDesc">식품 내 초기 일반세균 기준</div>
                     </div>
                   </div>
 
@@ -2443,7 +2443,7 @@
                     </div>
                     <div class="body-holder">
                       <div class="title-lg" data-i18n="step4_title">4단계 : 6,000 bar 초고압 가압 및 살균 유지</div>
-                      <div class="desc-lg" data-i18n="step4_sub">6,000 bar 정수압으로 유해 미생물 세포막을 파괴 (<span class="nw">5-log</span> 저감)</div>
+                      <div class="desc-lg" data-i18n="step4_sub">6,000 bar 정수압으로 미생물 세포막을 파괴 (초기 일반세균 <span class="nw">90% 이상</span> 저감)</div>
                     </div>
                   </div>
 
@@ -2891,7 +2891,7 @@
         step3_title: "3단계 : 베셀 내 충수 &amp; 탈기",
         step3_sub: "상온 정제수 완충 및 내부 잔류 공기 완전 배출",
         step4_title: "4단계 : 6,000 bar 초고압 가압 및 살균 유지",
-        step4_sub: "6,000 bar 정수압으로 유해 미생물 세포막을 파괴 (<span class=\"nw\">5-log</span> 저감)",
+        step4_sub: "6,000 bar 정수압으로 미생물 세포막을 파괴 (초기 일반세균 <span class=\"nw\">90% 이상</span> 저감)",
         step5_title: "5단계 : 감압 및 완제품 자동 배출",
         step5_sub: "대기압 안전 감압 후 콜드체인 출하 라인으로 자동 배출",
         real_deck_title: "HPP 현장 가동 실사 2종",
@@ -3166,18 +3166,18 @@
         checks: {
           ko: [
             "열처리 없는 고압 살균으로 탄력 있는 텍스처와 육즙 보존",
-            "리스테리아 모노사이토제네스 5-log 저감으로 수출 규격 대응",
+            "초기 일반세균 90% 이상 저감으로 위생 안전성 확보",
             "슬라이스 햄류 유통기한 최대 90~120일까지 획기적 증대"
           ],
           en: [
             "Preserves springy texture and rich natural meat juices",
-            "5-log reduction of Listeria monocytogenes for export compliance",
+            "90%+ reduction of initial bacteria for safer products",
             "Dramatically extends sliced ham shelf life up to 90~120 days"
           ]
         },
         pills: {
-          ko: ["권장 압력: 6,000 bar", "병원성 미생물: 5-log 저감", "유통기한: 최대 120일"],
-          en: ["Pressure: 6,000 bar", "Pathogen Reduction: 5-log", "Shelf Life: Up to 120 Days"]
+          ko: ["권장 압력: 6,000 bar", "초기 일반세균: 90% 이상 저감", "유통기한: 최대 120일"],
+          en: ["Pressure: 6,000 bar", "Initial Bacteria: 90%+ Reduction", "Shelf Life: Up to 120 Days"]
         },
         prods: [
           { img: "assets/products/meat_sausage.jpg", name: { ko: "수제 소시지 &amp; 햄", en: "Artisan Sausages &amp; Ham" }, desc: { ko: "탱글한 껍질과 풍부한 육즙 유지", en: "Crisp casing and juicy mouthfeel" } },
@@ -3456,7 +3456,7 @@
         { icon: 'microbe', color: 'var(--green-neon)',
           badge: T('[적용 대상 : 초기 일반세균 90% 이상 저감]', '[Target : 90%+ reduction of initial bacteria]'),
           kill: T('초기 일반세균 90% 이상 저감', '90%+ Reduction of Initial Bacteria'),
-          killDesc: T('리스테리아 · 살모넬라 · 대장균 등 초기 일반세균', 'Listeria, Salmonella, E. coli and other initial bacteria'),
+          killDesc: T('식품 내 초기 일반세균 기준', 'Based on initial total bacteria in food'),
           cat: T('육가공 · 델리미트 · 전 식품군', 'Deli Meats & All Foods'),
           catDesc: T('냉장 유통기한 최대 6배 연장 · 클린 라벨', 'Up to 6X chilled shelf life · Clean label') }
       ];
@@ -3728,8 +3728,8 @@
           en: 'Next-Gen HPP R&amp;D Center &amp; 6,000 bar Pilot Test Bed' 
         },
         specs: {
-          ko: '6,000 bar 시제품 실증 테스트, 살균 레시피 연구, 미생물 5-log 저감 검증',
-          en: '6,000 bar pilot trial, shelf-life recipe R&D, 5-log pathogen validation'
+          ko: '6,000 bar 시제품 실증 테스트, 살균 레시피 연구, 초기 일반세균 저감 검증',
+          en: '6,000 bar pilot trial, shelf-life recipe R&D, initial bacteria reduction validation'
         },
         transport: {
           ko: '세종-대전로 신동IC 진출 후 500m (차량 1분) / 세종시계 5분',
