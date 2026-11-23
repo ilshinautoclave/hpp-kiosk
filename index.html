@@ -3148,12 +3148,11 @@
           ]
         },
         pills: {
-          ko: ["권장 압력: 5,000 ~ 6,000 bar", "식품군: 국·반찬·죽·이유식", "처리 시간: 3분 내외"],
-          en: ["Pressure: 5,000 ~ 6,000 bar", "Category: Soups, Meals, Baby Food", "Time: ~3 min"]
+          ko: ["권장 압력: 5,000 ~ 6,000 bar", "식품군: 국·찌개·이유식·소스", "처리 시간: 3분 내외"],
+          en: ["Pressure: 5,000 ~ 6,000 bar", "Category: Soups, Baby Food, Sauces", "Time: ~3 min"]
         },
         prods: [
           { img: "assets/products/hmr_stew.jpg", name: { ko: "프리미엄 탕·찌개류", en: "Premium Stews &amp; Soups" }, desc: { ko: "채소 식감 살아있는 깊은 국물", en: "Crisp vegetables in rich broth" } },
-          { img: "assets/products/hmr_side.jpg", name: { ko: "신선 냉장 반찬", en: "Chilled Deli Dishes" }, desc: { ko: "갈변 없는 나물과 조림 반찬", en: "Zero browning seasoned vegetables" } },
           { img: "assets/products/hmr_baby.jpg", name: { ko: "친환경 유기농 이유식", en: "Organic Baby Food" }, desc: { ko: "방부제 제로 영유아 안심 먹거리", en: "Zero-additive infant nutrition" } },
           { img: "assets/products/hmr_sauce.jpg", name: { ko: "신선 파스타 소스", en: "Fresh Pasta Sauces" }, desc: { ko: "허브와 토마토 본연의 생생함", en: "Fresh herb and ripe tomato notes" } }
         ]
@@ -3452,7 +3451,7 @@
           badge: T('[적용 대상 : HMR · 과채 퓌레 · 효소 불활성]', '[Target : HMR, purees & enzyme inactivation]'),
           kill: T('병원성 미생물 집중 제어', 'Pathogen Inactivation'),
           killDesc: T('갈변 효소(PPO) 제어 · 신선 색감 유지', 'PPO browning enzyme controlled · Fresh color kept'),
-          cat: T('HMR · 반찬 · 과카몰리 · 퓌레', 'HMR · Deli · Guacamole · Purees'),
+          cat: T('HMR · 이유식 · 과카몰리 · 퓌레', 'HMR · Baby Food · Guacamole · Purees'),
           catDesc: T('권장 압력 5,000 ~ 6,000 bar · 처리 3분 내외', '5,000 ~ 6,000 bar · ~3 min hold') },
         { icon: 'microbe', color: 'var(--green-neon)',
           badge: T('[적용 대상 : 병원성 미생물 99.999% 저감 (5-log)]', '[Target : 99.999% pathogen reduction (5-log)]'),
@@ -3529,12 +3528,15 @@
       // Populate 4 Left Cards with Non-Cropped REAL PHOTOS (No zoom modal as requested)
       const prodsGrid = document.getElementById('appProdsGrid');
       prodsGrid.innerHTML = '';
-      data.prods.forEach(p => {
+      // 카드 수에 맞춰 배치 (4개: 2×2, 3개: 왼쪽 큰 카드 1 + 오른쪽 2)
+      const n = data.prods.length;
+      data.prods.forEach((p, i) => {
         const card = document.createElement('div');
         card.className = 'kiosk-prod-card-v3';
+        if (n === 3 && i === 0) card.style.gridRow = 'span 2';
         card.innerHTML = `
           <div class="prod-photo-thumb">
-            <img src="${p.img}" alt="${p.name[currentLang]}" loading="lazy" decoding="async">
+            <img src="${p.img}" alt="${p.name[currentLang]}" decoding="async">
           </div>
           <div class="prod-info-block">
             <div class="prod-title-lg">${p.name[currentLang]}</div>
