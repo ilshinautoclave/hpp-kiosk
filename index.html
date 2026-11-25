@@ -2661,6 +2661,10 @@
                 <img src="assets/icons_3d/nav_equip.png" alt="" style="width:24px; vertical-align:middle;">
                 <span data-i18n="v_tab_2">HPP 기술 &amp; 장비 소개</span>
               </button>
+              <button class="video-mode-pill" onclick="switchVideo('local_process', this)">
+                <img src="assets/icons_3d/cat_meat.png" alt="" style="width:24px; vertical-align:middle;" decoding="async">
+                <span data-i18n="v_tab_3">실공정 영상 (염지육)</span>
+              </button>
             </div>
 
             <div class="video-player-cinema-box">
@@ -2927,6 +2931,7 @@
         spec_k_wt: "장비 총 중량",
         v_tab_1: "HPP 브랜드 영상",
         v_tab_2: "HPP 기술 &amp; 장비 소개",
+        v_tab_3: "실공정 영상 (염지육)",
         contact_title: "회사 정보 · 오시는 길",
         map_card_title: "📍 본사 위치 지도",
         loc_addr_hq_map: "대전광역시 유성구 테크노2로 255 (구글 지도 실시간 연동)",
@@ -3052,6 +3057,7 @@
         spec_k_wt: "Total Machine Weight",
         v_tab_1: "HPP Brand Film",
         v_tab_2: "Technology &amp; Equipment",
+        v_tab_3: "Real Process: Brined Meat",
         contact_title: "Company Info &amp; Location",
         contact_lbl_tel: "Phone / Fax",
         contact_lbl_web: "Website",
@@ -3574,7 +3580,8 @@
       const player = document.getElementById('cinemaVideoPlayer');
       const srcEl = document.getElementById('cinemaVideoSrc');
       player.pause();
-      srcEl.src = (key === 'local_main') ? 'assets/videos/hpp_main_visual_R2.mp4' : 'assets/videos/hpp_youtube_video.mp4';
+      const VIDEO_SRC = { local_main: 'assets/videos/hpp_main_visual_R2.mp4', local_intro: 'assets/videos/hpp_youtube_video.mp4', local_process: 'assets/videos/hpp_process_meat.mp4' };
+      srcEl.src = VIDEO_SRC[key] || VIDEO_SRC.local_main;
       player.loop = true;
       player.load();
       player.play().catch(() => {});
